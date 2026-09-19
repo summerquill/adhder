@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADHDer MVP Demo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">ADHDer MVP Demo</p>
+          <h1>今天只推进一点点</h1>
+        </div>
+        <div class="today-meter" aria-label="今日重点数量">
+          <span id="todayCount">2</span><span>/3</span>
+          <small>今日重点</small>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="ADHDer demo 工作区">
+        <aside class="panel inbox-panel" aria-labelledby="inboxTitle">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Step 1</p>
+              <h2 id="inboxTitle">快速 Inbox</h2>
+            </div>
+          </div>
+
+          <form id="inboxForm" class="quick-entry">
+            <label for="taskInput">先把脑子里的事放下来</label>
+            <div class="input-row">
+              <input id="taskInput" type="text" placeholder="例如：整理厨房台面" autocomplete="off" />
+              <button type="submit">收集</button>
+            </div>
+          </form>
+
+          <div class="task-list" id="inboxList" aria-live="polite"></div>
+        </aside>
+
+        <section class="panel today-panel" aria-labelledby="todayTitle">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h2 id="todayTitle">今日 3 件事</h2>
+            </div>
+            <p class="hint">从 Inbox 里挑最多 3 件今天推进。</p>
+          </div>
+
+          <div class="today-list" id="todayList"></div>
+        </section>
+
+        <aside class="panel action-panel" aria-labelledby="actionTitle">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h2 id="actionTitle">开始一个小动作</h2>
+            </div>
+          </div>
+
+          <article class="selected-task" id="selectedTask"></article>
+
+          <section class="next-step" aria-labelledby="nextStepTitle">
+            <div class="mini-head">
+              <h3 id="nextStepTitle">下一步建议</h3>
+              <button id="regenerateStep" type="button">重新生成</button>
+            </div>
+            <textarea id="nextStepInput" rows="3"></textarea>
+          </section>
+
+          <section class="timer-box" aria-labelledby="timerTitle">
+            <h3 id="timerTitle">开始计时</h3>
+            <div class="timer-display" id="timerDisplay">05:00</div>
+            <div class="timer-options" role="group" aria-label="选择计时时长">
+              <button class="timer-option active" type="button" data-minutes="5">5 分钟</button>
+              <button class="timer-option" type="button" data-minutes="10">10 分钟</button>
+              <button class="timer-option" type="button" data-minutes="15">15 分钟</button>
+            </div>
+            <div class="timer-actions">
+              <button id="startTimer" type="button">开始</button>
+              <button id="resetTimer" type="button" class="secondary">重置</button>
+            </div>
+          </section>
+
+          <section class="status-box" aria-labelledby="statusTitle">
+            <h3 id="statusTitle">任务状态</h3>
+            <div class="status-options" id="statusOptions"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
