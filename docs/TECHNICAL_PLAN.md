@@ -178,6 +178,10 @@ npm run build
 npm run preview
 ```
 
+`npm run dev` 和 `npm run preview` 都使用 `http://localhost:4173/`。
+
+不要使用 `python3 -m http.server 4173` 直接托管项目根目录。Python 的静态文件服务器不会编译 `src/main.tsx` 和 TypeScript 模块，浏览器会因无法加载 Vite 入口而显示空白页。生产验证应运行 `npm run build` 后使用 `npm run preview`。
+
 交付要求：
 
 - `npm run typecheck` 通过。
