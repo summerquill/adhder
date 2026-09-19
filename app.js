@@ -53,6 +53,7 @@ let selectedTaskId = null;
 let selectedMinutes = 5;
 let remainingSeconds = selectedMinutes * 60;
 let timerId = null;
+let pendingSuggestion = "";
 
 let inboxForm;
 let taskInput;
@@ -62,6 +63,9 @@ let todayCount;
 let selectedTask;
 let nextStepInput;
 let regenerateStep;
+let suggestionCard;
+let suggestionText;
+let acceptStep;
 let timerDisplay;
 let timerOptions = [];
 let startTimer;
@@ -174,8 +178,22 @@ function createTask(title, existingTasks = tasks) {
   };
 }
 
+function makeAlternateNextStep(title, currentStep) {
+  const ruleSuggestion = makeNextStep(title);
+  if (ruleSuggestion !== currentStep) return ruleSuggestion;
+
+  for (let index = 0; index < stepSuggestions.length; index += 1) {
+    const suggestion = stepSuggestions[index];
+    if (suggestion !== currentStep) return suggestion;
+  }
+
+  return ruleSuggestion;
+}
+
 function setSelectedTask(taskId) {
   selectedTaskId = taskId;
+  const task = getSelectedTask();
+  pendingSuggestion = task ? makeAlternateNextStep(task.title, task.nextStep) : "";
   saveSelectedTaskId();
   syncSelectedTask();
 }
@@ -291,8 +309,13 @@ function renderSelectedTask() {
     nextStepInput.value = "";
     nextStepInput.disabled = true;
     regenerateStep.disabled = true;
+    suggestionText.textContent = "";
+    suggestionCard.hidden = true;
+    acceptStep.disabled = true;
     return;
   }
+
+  if (!pendingSuggestion) pendingSuggestion = makeAlternateNextStep(task.title, task.nextStep);
 
   const title = document.createElement("h3");
   title.textContent = task.title;
@@ -302,6 +325,9 @@ function renderSelectedTask() {
   nextStepInput.value = task.nextStep;
   nextStepInput.disabled = false;
   regenerateStep.disabled = false;
+  suggestionText.textContent = pendingSuggestion;
+  suggestionCard.hidden = false;
+  acceptStep.disabled = pendingSuggestion === task.nextStep;
 }
 
 function renderStatuses() {
@@ -366,6 +392,9 @@ function bootApp() {
   selectedTask = document.querySelector("#selectedTask");
   nextStepInput = document.querySelector("#nextStepInput");
   regenerateStep = document.querySelector("#regenerateStep");
+  suggestionCard = document.querySelector("#suggestionCard");
+  suggestionText = document.querySelector("#suggestionText");
+  acceptStep = document.querySelector("#acceptStep");
   timerDisplay = document.querySelector("#timerDisplay");
   timerOptions = document.querySelectorAll(".timer-option");
   startTimer = document.querySelector("#startTimer");
@@ -380,6 +409,7 @@ function bootApp() {
     const task = createTask(title);
     tasks = [task, ...tasks];
     selectedTaskId = task.id;
+    pendingSuggestion = makeAlternateNextStep(task.title, task.nextStep);
     taskInput.value = "";
     persist();
     render();
@@ -390,6 +420,7 @@ function bootApp() {
     if (!task) return;
 
     task.nextStep = nextStepInput.value;
+    pendingSuggestion = makeAlternateNextStep(task.title, task.nextStep);
     touchTask(task);
     persist();
     renderInbox();
@@ -399,7 +430,15 @@ function bootApp() {
   regenerateStep.addEventListener("click", () => {
     const task = getSelectedTask();
     if (!task) return;
-    updateTask(task, { nextStep: makeNextStep(task.title) });
+    pendingSuggestion = makeAlternateNextStep(task.title, pendingSuggestion || task.nextStep);
+    syncSelectedTask();
+  });
+
+  acceptStep.addEventListener("click", () => {
+    const task = getSelectedTask();
+    if (!task || !pendingSuggestion) return;
+    updateTask(task, { nextStep: pendingSuggestion });
+    pendingSuggestion = makeAlternateNextStep(task.title, task.nextStep);
     syncSelectedTask();
   });
 
@@ -453,6 +492,7 @@ if (typeof module !== "undefined") {
     formatTime,
     getTodayTasks,
     isValidTask,
+    makeAlternateNextStep,
     makeNextStep,
   };
 }

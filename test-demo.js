@@ -13,6 +13,8 @@ const requiredHtml = [
   "收集",
   "今日 3 件事",
   "下一步建议",
+  'id="suggestionCard"',
+  'id="acceptStep"',
   "开始计时",
   "任务状态",
   "5 分钟",
@@ -26,6 +28,7 @@ const requiredJs = [
   '"完成"',
   '"暂时放下"',
   "function makeNextStep",
+  "function makeAlternateNextStep",
   "function addTaskToToday",
   "function formatTime",
   "localStorage",
@@ -51,6 +54,15 @@ assert.strictEqual(app.makeNextStep("整理房间"), "把最显眼的一样东�
 assert.strictEqual(app.makeNextStep("回复体检预约消息"), "打开对话框，只读一遍最新消息");
 assert.strictEqual(app.makeNextStep("买洗衣液"), "打开购物 App，先搜索这个物品");
 assert.strictEqual(app.makeNextStep("准备材料", 0), "把任务写成一个 5 分钟内能开始的动作");
+
+assert.strictEqual(
+  app.makeAlternateNextStep("整理房间", "把地上的衣服放进洗衣篮"),
+  "把最显眼的一样东西放回它该在的位置",
+);
+assert.notStrictEqual(
+  app.makeAlternateNextStep("准备材料", "把任务写成一个 5 分钟内能开始的动作"),
+  "把任务写成一个 5 分钟内能开始的动作",
+);
 
 const todayFullTasks = [
   { inToday: true },

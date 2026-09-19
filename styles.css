@@ -60,6 +60,7 @@ button:active {
 button.secondary,
 .task-action,
 #regenerateStep,
+#acceptStep,
 .timer-option,
 .status-option {
   color: var(--ink);
@@ -70,6 +71,7 @@ button.secondary,
 button.secondary:hover,
 .task-action:hover,
 #regenerateStep:hover,
+#acceptStep:hover,
 .timer-option:hover,
 .status-option:hover {
   border-color: var(--brand);
@@ -318,6 +320,35 @@ textarea {
   padding: 0 12px;
 }
 
+.suggestion-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid rgba(47, 125, 109, 0.22);
+  border-radius: 8px;
+  background: var(--panel-strong);
+}
+
+.suggestion-card[hidden] {
+  display: none;
+}
+
+.suggestion-card p {
+  margin: 0;
+  color: var(--brand-dark);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#acceptStep {
+  min-height: 34px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .timer-display {
   display: grid;
   place-items: center;
@@ -403,6 +434,7 @@ textarea {
   }
 
   .timer-options,
+  .suggestion-card,
   .status-options {
     grid-template-columns: 1fr;
   }
