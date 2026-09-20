@@ -10,6 +10,7 @@ export type UserSettings = {
   tagsEnabled: boolean;
   nextStepEnabled: boolean;
   countdownPresets: number[];
+  energyEnabled: boolean;
 };
 
 export const defaultCountdownPresets = [5, 10, 15];
@@ -18,6 +19,7 @@ export const defaultUserSettings: UserSettings = {
   tagsEnabled: false,
   nextStepEnabled: true,
   countdownPresets: [...defaultCountdownPresets],
+  energyEnabled: true,
 };
 
 function createTagId(): string {
@@ -77,6 +79,7 @@ export function normalizeUserSettings(value: unknown): UserSettings {
     tagsEnabled: typeof settings.tagsEnabled === "boolean" ? settings.tagsEnabled : false,
     nextStepEnabled: typeof settings.nextStepEnabled === "boolean" ? settings.nextStepEnabled : true,
     countdownPresets: normalizeCountdownPresets(settings.countdownPresets),
+    energyEnabled: typeof settings.energyEnabled === "boolean" ? settings.energyEnabled : true,
   };
 }
 

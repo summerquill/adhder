@@ -1,12 +1,30 @@
 import { useEffect, useState } from "react";
 
+import { CarePanel } from "../components/CarePanel";
 import { InboxPanel } from "../components/InboxPanel";
 import { RepeatModeModal } from "../components/RepeatModeModal";
 import { SettingsPage } from "../components/SettingsPage";
 import { TaskDetailPanel } from "../components/TaskDetailPanel";
 import { TagSelectionModal } from "../components/TagSelectionModal";
-import { TodayPanel } from "../components/TodayPanel";
+import { TodayPanel, type ComfortEntryPair } from "../components/TodayPanel";
 import { getLocalDateKey } from "../domain/calendar";
+import {
+  completeComfortEntry,
+  createComfortEntry,
+  createComfortItem,
+  getComfortEntriesForDate,
+  getRecentComfortItemIds,
+  updateComfortEntry,
+  type ComfortEffort,
+  type ComfortEntry,
+  type ComfortItem,
+} from "../domain/comfort";
+import {
+  createEnergyRecord,
+  getEnergyStateForDate,
+  type EnergyRecord,
+  type EnergyState,
+} from "../domain/energy";
 import { makeAlternateNextStep } from "../domain/nextStep";
 import type { RepeatMode } from "../domain/repeat";
 import {
@@ -24,6 +42,8 @@ import {
   type Task,
   type TaskStatus,
 } from "../domain/task";
+import { useComfortRepository } from "../storage/ComfortRepositoryContext";
+import { useEnergyRepository } from "../storage/EnergyRepositoryContext";
 import { useTagRepository } from "../storage/TagRepositoryContext";
 import { useTaskRepository } from "../storage/TaskRepositoryContext";
 
@@ -45,63 +65,84 @@ const tabTitles: Record<ActiveTab, string> = {
 export default function App() {
   const taskRepository = useTaskRepository();
   const tagRepository = useTagRepository();
+  const energyRepository = useEnergyRepository();
+  const comfortRepository = useComfortRepository();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [energyRecords, setEnergyRecords] = useState<EnergyRecord[]>([]);
+  const [comfortItems, setComfortItems] = useState<ComfortItem[]>([]);
+  const [comfortEntries, setComfortEntries] = useState<ComfortEntry[]>([]);
   const [settings, setSettings] = useState<UserSettings>(defaultUserSettings);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [pendingSuggestion, setPendingSuggestion] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("inbox");
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [isCarePageOpen, setIsCarePageOpen] = useState(false);
   const [taskModal, setTaskModal] = useState<TaskModal>(null);
   const [isReady, setIsReady] = useState(false);
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? tasks[0] ?? null;
   const modalTask = taskModal ? tasks.find((task) => task.id === taskModal.taskId) ?? null : null;
-  const todayTaskCount = getTodayTasks(tasks).length;
+  const todayKey = getLocalDateKey();
+  const todayTaskCount = getTodayTasks(tasks, todayKey).length;
+  const todayEnergyState = getEnergyStateForDate(energyRecords, todayKey);
+  const todayComfortEntries = getComfortEntriesForDate(comfortEntries, todayKey)
+    .map((entry) => ({
+      entry,
+      item: comfortItems.find((item) => item.id === entry.itemId),
+    }))
+    .filter((pair): pair is ComfortEntryPair => Boolean(pair.item));
+  const isSubPageOpen = isTaskDetailOpen || isCarePageOpen;
 
   useEffect(() => {
     let isActive = true;
 
-    void Promise.all([taskRepository.load(), tagRepository.load()]).then(
-      ([taskSnapshot, tagSnapshot]) => {
-        if (!isActive) return;
+    void Promise.all([
+      taskRepository.load(),
+      tagRepository.load(),
+      energyRepository.load(),
+      comfortRepository.load(),
+    ]).then(([taskSnapshot, tagSnapshot, energySnapshot, comfortSnapshot]) => {
+      if (!isActive) return;
 
-        const todayKey = getLocalDateKey();
-        const validTagIds = new Set(tagSnapshot.tags.map((tag) => tag.id));
-        const migratedTasks = taskSnapshot.tasks.map((task) => {
-          const migratedTask = {
-            ...task,
-            tagIds: task.tagIds.filter((tagId) => validTagIds.has(tagId)),
-          };
+      const currentDateKey = getLocalDateKey();
+      const validTagIds = new Set(tagSnapshot.tags.map((tag) => tag.id));
+      const migratedTasks = taskSnapshot.tasks.map((task) => {
+        const migratedTask = {
+          ...task,
+          tagIds: task.tagIds.filter((tagId) => validTagIds.has(tagId)),
+        };
 
-          if (migratedTask.inToday && migratedTask.plannedDate !== todayKey) {
-            return updateTask(migratedTask, { inToday: false });
-          }
+        if (migratedTask.inToday && migratedTask.plannedDate !== currentDateKey) {
+          return updateTask(migratedTask, { inToday: false });
+        }
 
-          return migratedTask;
-        });
-        const initialSelectedTask =
-          migratedTasks.find((task) => task.id === taskSnapshot.selectedTaskId) ??
-          migratedTasks[0] ??
-          null;
+        return migratedTask;
+      });
+      const initialSelectedTask =
+        migratedTasks.find((task) => task.id === taskSnapshot.selectedTaskId) ??
+        migratedTasks[0] ??
+        null;
 
-        setTasks(migratedTasks);
-        setSelectedTaskId(taskSnapshot.selectedTaskId);
-        setPendingSuggestion(
-          initialSelectedTask
-            ? makeAlternateNextStep(initialSelectedTask.title, initialSelectedTask.nextStep)
-            : "",
-        );
-        setTags(tagSnapshot.tags);
-        setSettings(tagSnapshot.settings);
-        setIsReady(true);
-      },
-    );
+      setTasks(migratedTasks);
+      setSelectedTaskId(taskSnapshot.selectedTaskId);
+      setPendingSuggestion(
+        initialSelectedTask
+          ? makeAlternateNextStep(initialSelectedTask.title, initialSelectedTask.nextStep)
+          : "",
+      );
+      setTags(tagSnapshot.tags);
+      setEnergyRecords(energySnapshot.records);
+      setComfortItems(comfortSnapshot.items);
+      setComfortEntries(comfortSnapshot.entries);
+      setSettings(tagSnapshot.settings);
+      setIsReady(true);
+    });
 
     return () => {
       isActive = false;
     };
-  }, [tagRepository, taskRepository]);
+  }, [comfortRepository, energyRepository, tagRepository, taskRepository]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -123,6 +164,21 @@ export default function App() {
     void tagRepository.saveSettings(settings);
   }, [isReady, settings, tagRepository]);
 
+  useEffect(() => {
+    if (!isReady) return;
+    void energyRepository.saveRecords(energyRecords);
+  }, [energyRecords, energyRepository, isReady]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    void comfortRepository.saveItems(comfortItems);
+  }, [comfortItems, comfortRepository, isReady]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    void comfortRepository.saveEntries(comfortEntries);
+  }, [comfortEntries, comfortRepository, isReady]);
+
   function patchTask(taskId: string, patch: Partial<Omit<Task, "id" | "createdAt">>) {
     setTasks((currentTasks) =>
       currentTasks.map((task) => (task.id === taskId ? updateTask(task, patch) : task)),
@@ -137,12 +193,19 @@ export default function App() {
 
   function openTask(taskId: string) {
     selectTask(taskId);
+    setIsCarePageOpen(false);
     setIsTaskDetailOpen(true);
+  }
+
+  function openCarePage() {
+    setIsTaskDetailOpen(false);
+    setIsCarePageOpen(true);
   }
 
   function selectTab(tab: ActiveTab) {
     setActiveTab(tab);
     setIsTaskDetailOpen(false);
+    setIsCarePageOpen(false);
     setTaskModal(null);
   }
 
@@ -242,6 +305,56 @@ export default function App() {
     patchTask(taskId, { repeatMode });
   }
 
+  function handleEnergyChange(state: EnergyState) {
+    setEnergyRecords((currentRecords) => [
+      ...currentRecords,
+      createEnergyRecord(state, { dateKey: getLocalDateKey() }),
+    ]);
+  }
+
+  function handleCreateComfortItem(title: string, effort: ComfortEffort) {
+    setComfortItems((currentItems) => [...currentItems, createComfortItem(title, { effort })]);
+  }
+
+  function handleDeleteComfortItem(itemId: string) {
+    setComfortItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
+    setComfortEntries((currentEntries) =>
+      currentEntries.filter((entry) => entry.itemId !== itemId),
+    );
+  }
+
+  function handleAdoptComfortItem(itemId: string) {
+    const dateKey = getLocalDateKey();
+    const alreadyAdoptedToday = comfortEntries.some(
+      (entry) => entry.itemId === itemId && entry.dateKey === dateKey,
+    );
+
+    if (!alreadyAdoptedToday) {
+      setComfortEntries((currentEntries) => [
+        ...currentEntries,
+        createComfortEntry(itemId, { dateKey }),
+      ]);
+    }
+
+    setIsCarePageOpen(false);
+  }
+
+  function handleComfortNoteChange(entryId: string, note: string) {
+    setComfortEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === entryId ? updateComfortEntry(entry, { note }) : entry,
+      ),
+    );
+  }
+
+  function handleCompleteComfortEntry(entryId: string) {
+    setComfortEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === entryId ? completeComfortEntry(entry) : entry,
+      ),
+    );
+  }
+
   if (!isReady) {
     return (
       <main className="app-shell" aria-busy="true">
@@ -252,20 +365,25 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header className={`app-header${isTaskDetailOpen ? " detail-header" : ""}`}>
-        {isTaskDetailOpen ? (
+      <header className={`app-header${isSubPageOpen ? " detail-header" : ""}`}>
+        {isSubPageOpen ? (
           <button
             className="secondary back-button"
             type="button"
-            aria-label="返回任务列表"
-            onClick={() => setIsTaskDetailOpen(false)}
+            aria-label={isCarePageOpen ? "返回今日 3 件事" : "返回任务列表"}
+            onClick={() => {
+              setIsCarePageOpen(false);
+              setIsTaskDetailOpen(false);
+            }}
           >
             ←
           </button>
         ) : null}
         <div className="header-title">
           <p className="eyebrow">ADHDer</p>
-          <h1>{isTaskDetailOpen ? "开始一个小动作" : tabTitles[activeTab]}</h1>
+          <h1>
+            {isCarePageOpen ? "照顾自己" : isTaskDetailOpen ? "开始一个小动作" : tabTitles[activeTab]}
+          </h1>
         </div>
         <div className="today-meter" aria-label="今日重点数量">
           <span>{todayTaskCount}</span>
@@ -294,7 +412,20 @@ export default function App() {
           </div>
         ) : null}
 
-        {!isTaskDetailOpen && activeTab === "inbox" ? (
+        {isCarePageOpen ? (
+          <div className="tab-panel care-panel" role="region" aria-label="照顾自己">
+            <CarePanel
+              items={comfortItems}
+              energyState={todayEnergyState}
+              recentItemIds={getRecentComfortItemIds(comfortEntries, 3)}
+              onAdopt={handleAdoptComfortItem}
+              onCreateItem={handleCreateComfortItem}
+              onDeleteItem={handleDeleteComfortItem}
+            />
+          </div>
+        ) : null}
+
+        {!isSubPageOpen && activeTab === "inbox" ? (
           <div className="tab-panel" role="tabpanel" aria-label="快速 Inbox">
             <InboxPanel
               tasks={tasks}
@@ -310,7 +441,7 @@ export default function App() {
           </div>
         ) : null}
 
-        {!isTaskDetailOpen && activeTab === "today" ? (
+        {!isSubPageOpen && activeTab === "today" ? (
           <div className="tab-panel" role="tabpanel" aria-label="今日 3 件事">
             <TodayPanel
               tasks={tasks}
@@ -323,11 +454,18 @@ export default function App() {
               tagsEnabled={settings.tagsEnabled}
               onOpenRepeatSettings={(taskId) => setTaskModal({ type: "repeat", taskId })}
               onOpenTagSettings={(taskId) => setTaskModal({ type: "tags", taskId })}
+              energyEnabled={settings.energyEnabled}
+              energyState={todayEnergyState}
+              onEnergyChange={handleEnergyChange}
+              onOpenCare={openCarePage}
+              comfortEntries={todayComfortEntries}
+              onComfortNoteChange={handleComfortNoteChange}
+              onCompleteComfort={handleCompleteComfortEntry}
             />
           </div>
         ) : null}
 
-        {!isTaskDetailOpen && activeTab === "settings" ? (
+        {!isSubPageOpen && activeTab === "settings" ? (
           <div className="tab-panel settings-tab-panel" role="tabpanel" aria-label="设置">
             <SettingsPage
               settings={settings}
@@ -339,6 +477,9 @@ export default function App() {
               onToggleNextStep={(nextStepEnabled) =>
                 setSettings((currentSettings) => ({ ...currentSettings, nextStepEnabled }))
               }
+              onToggleEnergy={(energyEnabled) =>
+                setSettings((currentSettings) => ({ ...currentSettings, energyEnabled }))
+              }
               onCountdownPresetsChange={(countdownPresets) =>
                 setSettings((currentSettings) => ({ ...currentSettings, countdownPresets }))
               }
@@ -349,7 +490,7 @@ export default function App() {
         ) : null}
       </section>
 
-      {!isTaskDetailOpen ? (
+      {!isSubPageOpen ? (
         <nav className="tab-bar" aria-label="主导航" role="tablist">
         {tabDefinitions.map((tab) => (
           <button

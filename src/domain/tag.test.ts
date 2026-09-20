@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildTagPath,
   createTag,
+  defaultUserSettings,
   getDescendantTagIds,
   getTagDepth,
+  normalizeUserSettings,
   sortTagsHierarchically,
   type Tag,
 } from "./tag";
@@ -38,6 +40,15 @@ describe("tag domain", () => {
       name: "英语",
       parentId: learning.id,
     });
+  });
+
+  it("keeps new module toggles when normalizing legacy settings", () => {
+    expect(normalizeUserSettings({ tagsEnabled: true })).toEqual({
+      ...defaultUserSettings,
+      tagsEnabled: true,
+    });
+    expect(normalizeUserSettings({ energyEnabled: false }).energyEnabled).toBe(false);
+    expect(normalizeUserSettings(null)).toEqual(defaultUserSettings);
   });
 
   it("finds descendants and sorts tags by hierarchy", () => {

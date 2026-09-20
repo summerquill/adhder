@@ -10,6 +10,7 @@ type SettingsPageProps = {
   tasks: readonly Task[];
   onToggleTags: (enabled: boolean) => void;
   onToggleNextStep: (enabled: boolean) => void;
+  onToggleEnergy: (enabled: boolean) => void;
   onCountdownPresetsChange: (presets: number[]) => void;
   onCreateTag: (name: string, parentId: string | null) => void;
   onDeleteTag: (tagId: string) => void;
@@ -21,6 +22,7 @@ export function SettingsPage({
   tasks,
   onToggleTags,
   onToggleNextStep,
+  onToggleEnergy,
   onCountdownPresetsChange,
   onCreateTag,
   onDeleteTag,
@@ -41,6 +43,19 @@ export function SettingsPage({
             role="switch"
             checked={settings.tagsEnabled}
             onChange={(event) => onToggleTags(event.target.checked)}
+          />
+        </label>
+
+        <label className="settings-toggle">
+          <span>
+            <strong>显示今日状态与照顾清单</strong>
+            <small>关闭后隐藏今日状态选择和照顾入口，已有记录不会删除。</small>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings.energyEnabled}
+            onChange={(event) => onToggleEnergy(event.target.checked)}
           />
         </label>
 

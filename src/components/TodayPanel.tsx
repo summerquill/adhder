@@ -1,10 +1,19 @@
 import { useState } from "react";
 
 import { formatDateLabel, getLocalDateKey } from "../domain/calendar";
+import type { ComfortEntry, ComfortItem } from "../domain/comfort";
+import type { EnergyState } from "../domain/energy";
 import type { Tag } from "../domain/tag";
 import { getTodayTasks, type Task } from "../domain/task";
+import { ComfortCard } from "./ComfortCard";
 import { DayPlanModal } from "./DayPlanModal";
+import { EnergySelector } from "./EnergySelector";
 import { TaskCard } from "./TaskCard";
+
+export type ComfortEntryPair = {
+  entry: ComfortEntry;
+  item: ComfortItem;
+};
 
 type TodayPanelProps = {
   tasks: readonly Task[];
@@ -15,6 +24,13 @@ type TodayPanelProps = {
   tagsEnabled: boolean;
   onOpenRepeatSettings: (taskId: string) => void;
   onOpenTagSettings: (taskId: string) => void;
+  energyEnabled: boolean;
+  energyState: EnergyState | null;
+  onEnergyChange: (state: EnergyState) => void;
+  onOpenCare: () => void;
+  comfortEntries: readonly ComfortEntryPair[];
+  onComfortNoteChange: (entryId: string, note: string) => void;
+  onCompleteComfort: (entryId: string) => void;
 };
 
 export function TodayPanel({
@@ -26,6 +42,13 @@ export function TodayPanel({
   tagsEnabled,
   onOpenRepeatSettings,
   onOpenTagSettings,
+  energyEnabled,
+  energyState,
+  onEnergyChange,
+  onOpenCare,
+  comfortEntries,
+  onComfortNoteChange,
+  onCompleteComfort,
 }: TodayPanelProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const todayTasks = getTodayTasks(tasks);
@@ -41,6 +64,10 @@ export function TodayPanel({
         <p className="hint">建议先挑 1～3 件今天推进，也可以继续添加。</p>
       </div>
 
+      {energyEnabled ? (
+        <EnergySelector state={energyState} onChange={onEnergyChange} onOpenCare={onOpenCare} />
+      ) : null}
+
       <div className="calendar-toolbar">
         <button className="secondary" type="button" onClick={() => setCalendarOpen(true)}>
           日历
@@ -49,24 +76,40 @@ export function TodayPanel({
       </div>
 
       <div className="today-list" aria-live="polite">
-        {todayTasks.length === 0 ? (
+        {todayTasks.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            tags={tags}
+            isSelected={task.id === selectedTaskId}
+            onSelect={() => onSelectTask(task.id)}
+            moveLabel="移出今日"
+            onMove={() => onRemoveTaskFromToday(task.id)}
+            tagsEnabled={tagsEnabled}
+            onOpenRepeatSettings={() => onOpenRepeatSettings(task.id)}
+            onOpenTagSettings={() => onOpenTagSettings(task.id)}
+          />
+        ))}
+
+        {todayTasks.length === 0 && comfortEntries.length === 0 ? (
           <div className="empty-state">从 Inbox 里选一件今天想推进的事。</div>
-        ) : (
-          todayTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              tags={tags}
-              isSelected={task.id === selectedTaskId}
-              onSelect={() => onSelectTask(task.id)}
-              moveLabel="移出今日"
-              onMove={() => onRemoveTaskFromToday(task.id)}
-              tagsEnabled={tagsEnabled}
-              onOpenRepeatSettings={() => onOpenRepeatSettings(task.id)}
-              onOpenTagSettings={() => onOpenTagSettings(task.id)}
-            />
-          ))
-        )}
+        ) : null}
+
+        {comfortEntries.length > 0 ? (
+          <>
+            <p className="comfort-list-title">照顾自己</p>
+            {comfortEntries.map(({ entry, item }) => (
+              <ComfortCard
+                key={entry.id}
+                title={item.title}
+                note={entry.note ?? ""}
+                completed={entry.completedAt !== null}
+                onNoteChange={(note) => onComfortNoteChange(entry.id, note)}
+                onComplete={() => onCompleteComfort(entry.id)}
+              />
+            ))}
+          </>
+        ) : null}
       </div>
 
       {calendarOpen ? (

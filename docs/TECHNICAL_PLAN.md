@@ -85,6 +85,9 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - Inbox 和今日列表统一的循环/标签快捷操作。
 - 循环规则按日期计算，并在今日列表和日历中使用同一调度函数。
 - `localStorage` 读写和异常数据回退。
+- 今日状态事件记录、按天取最新状态和异常数据回退。
+- 照顾清单增删、采纳记录、完成状态、备注和低电量随机抽取。
+- 状态与照顾模块开关的显示与隐藏，以及关闭后的数据保留。
 
 #### 数据存储
 
@@ -117,6 +120,9 @@ src/
   components/
     InboxPanel.tsx
     TodayPanel.tsx
+    EnergySelector.tsx
+    ComfortCard.tsx
+    CarePanel.tsx
     TaskDetailPanel.tsx
     TimerControl.tsx
     StatusSelector.tsx
@@ -180,7 +186,10 @@ src/
 | `main.tsx` | 启动入口 | 挂载 React、注入任务和标签 Repository、加载全局样式 | React、两个 Repository Provider 和本地实现 |
 | `App.tsx` | 状态容器与应用编排 | 加载任务/标签快照、管理三个 Tab、任务详情页和弹窗、协调设置与持久化 | 业务面板、设置页、弹窗、领域逻辑、两个 Repository Context |
 | `InboxPanel.tsx` | 输入与 Inbox 面板 | 创建任务、展示全部任务、选择任务、加入今日 | `TaskCard`、`Task` 类型 |
-| `TodayPanel.tsx` | 今日重点面板 | 展示今日任务、选择任务、移出今日 | `TaskCard`、任务领域函数 |
+| `TodayPanel.tsx` | 今日重点面板 | 展示今日状态、今日任务与已采纳的照顾条目，选择任务、移出今日 | `EnergySelector`、`ComfortCard`、`TaskCard`、任务与 comfort 领域函数 |
+| `EnergySelector.tsx` | 受控交互组件 | 展示并提交今日状态，提供照顾清单入口 | `energy` 领域模块 |
+| `ComfortCard.tsx` | 展示卡片 | 采纳后的照顾条目只提供备注输入和完成按钮 | `ComfortEntry`、`ComfortItem` |
+| `CarePanel.tsx` | 照顾清单页 | 编写清单、按低电量状态随机抽取并采纳条目 | `comfort` 领域函数 |
 | `TaskDetailPanel.tsx` | 当前任务操作面板 | 组合下一步建议、可选标签、计时器和状态选择器 | `TagSelector`、`TimerControl`、`StatusSelector` |
 | `TaskCard.tsx` | 任务展示卡片 | 主体点击进入详情，展示状态、下一步、循环、累计时间和最多三列操作按钮 | 循环/标签/计时格式化、`Task` 类型 |
 | `TimerControl.tsx` | 有状态交互组件 | 管理倒计时/正计时会话、控制运行状态、上报执行秒数 | `task`、`timer` 领域模块 |
@@ -196,6 +205,8 @@ src/
 | `domain/task.ts` | 领域模型 | 任务类型、状态、校验、迁移、创建、更新、标签关联和时间累计 | `nextStep` |
 | `domain/tag.ts` | 标签领域模型 | 标签层级、路径、后代、排序、创建和设置迁移 | 无 React、无存储 |
 | `domain/tagStats.ts` | 统计领域逻辑 | 按标签层级聚合任务去重后的执行时间 | `tag`、`task` |
+| `domain/energy.ts` | 领域模型 | 今日状态事件、校验、迁移、创建和查询 | `calendar` |
+| `domain/comfort.ts` | 领域模型 | 照顾条目、采纳记录、完成、随机抽取 | `calendar` |
 | `domain/repeat.ts` | 循环领域逻辑 | 循环模式类型、迁移和展示文案 | 无 React、无存储 |
 | `domain/calendar.ts` | 日历领域逻辑 | 本地日期键、月份网格和日期文案 | 无 React、无存储 |
 | `domain/nextStep.ts` | 领域逻辑 | 根据任务标题生成和轮换下一步建议 | 无 React、无存储 |
@@ -460,6 +471,14 @@ type UserSettings = {
 ### 任务状态
 
 每个任务支持四种状态。状态变化会立即更新 React 状态并通过 `TaskRepository` 持久化。
+
+### 今日状态与照顾清单
+
+今日页顶部提供满血、硬撑、低电量三个状态选项，以及「照顾自己」入口。状态变化会追加一条 `EnergyRecord`，当天界面只读取当天最后一条，历史记录为后续状态曲线保留。
+
+照顾清单页支持编写、删除条目，并在今日状态为低电量时随机抽取一条供用户采纳。抽取优先选择 `effort` 为轻的条目，并避开最近用过的条目。采纳会创建当天的 `ComfortEntry`，回到今日页后以黄色 comfort 卡片展示，只提供备注输入和完成按钮。
+
+设置中的 `energyEnabled` 控制该模块是否展示。关闭后状态选择、照顾入口和今日的 comfort 卡片一并隐藏，但状态记录、清单和采纳记录都保留。
 
 ## 开发与验证命令
 

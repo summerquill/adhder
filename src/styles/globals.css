@@ -13,6 +13,12 @@
   --accent: #d98545;
   --accent-soft: #fff1e5;
   --danger: #a04434;
+  --energy-full: #3f9d6d;
+  --energy-holding: #c9801f;
+  --energy-low: #b4544a;
+  --comfort: #8a6812;
+  --comfort-soft: #fff7dc;
+  --comfort-line: #ecd694;
   --shadow: 0 14px 36px rgba(44, 65, 58, 0.1);
 }
 
@@ -1006,4 +1012,263 @@ h3 {
   .timer-options {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.energy-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.energy-options {
+  display: flex;
+  flex: 1;
+  min-width: 190px;
+  gap: 6px;
+}
+
+.energy-option {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 8px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.energy-option:hover {
+  color: var(--ink);
+  border-color: var(--brand);
+  background: var(--surface-soft);
+}
+
+.energy-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.energy-full .energy-dot {
+  background: var(--energy-full);
+}
+
+.energy-holding .energy-dot {
+  background: var(--energy-holding);
+}
+
+.energy-low .energy-dot {
+  background: var(--energy-low);
+}
+
+.energy-option.active {
+  box-shadow: inset 0 -3px 0 currentColor;
+}
+
+.energy-full.active {
+  color: #2b7a52;
+  border-color: var(--energy-full);
+  background: #edf7f1;
+}
+
+.energy-holding.active {
+  color: #96600f;
+  border-color: var(--energy-holding);
+  background: #fdf3e6;
+}
+
+.energy-low.active {
+  color: var(--energy-low);
+  border-color: var(--energy-low);
+  background: #fbeceb;
+}
+
+button.care-entry {
+  flex: none;
+  min-height: 38px;
+  padding: 0 12px;
+  color: var(--comfort);
+  border: 1px solid var(--comfort-line);
+  background: var(--comfort-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+button.care-entry:hover {
+  color: var(--comfort);
+  border-color: var(--comfort);
+  background: #fff2c4;
+}
+
+.comfort-list-title {
+  margin: 6px 0 0;
+  color: var(--comfort);
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+}
+
+.comfort-card {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid var(--comfort-line);
+  border-radius: 16px;
+  background: var(--comfort-soft);
+  box-shadow: inset 4px 0 0 var(--comfort-line);
+}
+
+.comfort-card.completed {
+  opacity: 0.72;
+  box-shadow: inset 4px 0 0 var(--muted);
+}
+
+.comfort-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comfort-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f6e6ae;
+  color: var(--comfort);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.comfort-title {
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.comfort-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.comfort-actions input {
+  min-height: 38px;
+}
+
+.comfort-actions button {
+  min-height: 38px;
+  padding: 0 14px;
+  color: #fff;
+  background: var(--comfort);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.comfort-actions button:hover {
+  background: #6f540e;
+}
+
+.care-panel {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.care-pick,
+.care-form {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--comfort-line);
+  border-radius: 16px;
+  background: var(--comfort-soft);
+}
+
+.care-pick .mini-head {
+  margin-bottom: 0;
+}
+
+.care-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.care-picked {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.care-picked span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.care-picked-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.care-form label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.care-form-row {
+  display: grid;
+  grid-template-columns: 1fr 92px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.comfort-item-list {
+  display: grid;
+  gap: 10px;
+}
+
+.comfort-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.comfort-item-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.comfort-effort,
+.comfort-how {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.comfort-item button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
 }

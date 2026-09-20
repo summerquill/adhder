@@ -3,9 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getLocalDateKey } from "../domain/calendar";
+import type { ComfortEntry, ComfortItem } from "../domain/comfort";
+import type { EnergyRecord } from "../domain/energy";
 import { defaultUserSettings, type Tag, type UserSettings } from "../domain/tag";
 import type { Task } from "../domain/task";
 import { makeTask } from "../test/fixtures";
+import type { ComfortRepository } from "../storage/ComfortRepository";
+import { ComfortRepositoryProvider } from "../storage/ComfortRepositoryContext";
+import type { EnergyRepository } from "../storage/EnergyRepository";
+import { EnergyRepositoryProvider } from "../storage/EnergyRepositoryContext";
+import { LocalComfortRepository } from "../storage/localComfortRepository";
+import { LocalEnergyRepository } from "../storage/localEnergyRepository";
 import type { TagRepository } from "../storage/TagRepository";
 import { TagRepositoryProvider } from "../storage/TagRepositoryContext";
 import { LocalTagRepository } from "../storage/localTagRepository";
@@ -36,14 +44,45 @@ function createTagRepository(
   };
 }
 
+function createEnergyRepository(records: EnergyRecord[] = []): EnergyRepository {
+  return {
+    load: vi.fn(async () => ({ records })),
+    saveRecords: vi.fn(async () => undefined),
+  };
+}
+
+function createComfortRepository(
+  items: ComfortItem[] = [],
+  entries: ComfortEntry[] = [],
+): ComfortRepository {
+  return {
+    load: vi.fn(async () => ({ items, entries })),
+    saveItems: vi.fn(async () => undefined),
+    saveEntries: vi.fn(async () => undefined),
+  };
+}
+
+type ExtraRepositories = {
+  energyRepository?: EnergyRepository;
+  comfortRepository?: ComfortRepository;
+};
+
 function renderApp(
   repository: TaskRepository = new LocalTaskRepository(),
   tagRepository: TagRepository = new LocalTagRepository(),
+  {
+    energyRepository = new LocalEnergyRepository(),
+    comfortRepository = new LocalComfortRepository(),
+  }: ExtraRepositories = {},
 ) {
   return render(
     <TaskRepositoryProvider repository={repository}>
       <TagRepositoryProvider repository={tagRepository}>
-        <App />
+        <EnergyRepositoryProvider repository={energyRepository}>
+          <ComfortRepositoryProvider repository={comfortRepository}>
+            <App />
+          </ComfortRepositoryProvider>
+        </EnergyRepositoryProvider>
       </TagRepositoryProvider>
     </TaskRepositoryProvider>,
   );
@@ -324,6 +363,97 @@ describe("App", () => {
     await user.click(await screen.findByRole("button", { name: "完成" }));
 
     expect(screen.getByText("当前状态：完成")).toBeInTheDocument();
+  });
+
+  it("records today's energy state from the Today panel", async () => {
+    const user = userEvent.setup();
+    const energyRepository = createEnergyRepository();
+    renderApp(createRepository([makeTask({ id: "energy-task", inToday: true })]), undefined, {
+      energyRepository,
+    });
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    await user.click(screen.getByRole("button", { name: "低电量" }));
+
+    expect(screen.getByRole("button", { name: "低电量" })).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => {
+      const savedRecords = vi.mocked(energyRepository.saveRecords).mock.calls.at(-1)?.[0];
+      expect(savedRecords?.at(-1)?.state).toBe("low");
+    });
+  });
+
+  it("hides the energy row when the module is disabled", async () => {
+    const user = userEvent.setup();
+    renderApp(createRepository([makeTask({ id: "energy-task", inToday: true })]));
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    expect(screen.getByRole("button", { name: "低电量" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /设置/ }));
+    await user.click(screen.getByRole("switch", { name: /显示今日状态/ }));
+    await user.click(screen.getByRole("tab", { name: /今日 3 件事/ }));
+
+    expect(screen.queryByRole("button", { name: "低电量" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "照顾自己" })).not.toBeInTheDocument();
+  });
+
+  it("adopts a comfort item into today and completes it with a note", async () => {
+    const user = userEvent.setup();
+    const comfortRepository = createComfortRepository();
+    renderApp(
+      createRepository([makeTask({ id: "today-task", title: "今日任务", inToday: true })]),
+      undefined,
+      { energyRepository: createEnergyRepository(), comfortRepository },
+    );
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    await user.click(screen.getByRole("button", { name: "低电量" }));
+    await user.click(screen.getByRole("button", { name: "照顾自己" }));
+
+    await user.type(screen.getByLabelText("新的照顾条目"), "喝杯热水");
+    await user.click(screen.getByRole("button", { name: "添加条目" }));
+    expect(screen.getAllByText("喝杯热水").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "随机抽一个" }));
+    await user.click(screen.getByRole("button", { name: "采纳" }));
+
+    const noteInput = await screen.findByLabelText("喝杯热水 的备注");
+    expect(screen.getByRole("button", { name: "移出今日" })).toBeInTheDocument();
+    await user.type(noteInput, "喝了半杯");
+    await user.click(screen.getByRole("button", { name: "完成" }));
+
+    expect(screen.getByRole("button", { name: "已完成" })).toBeDisabled();
+    await waitFor(() => {
+      const savedEntries = vi.mocked(comfortRepository.saveEntries).mock.calls.at(-1)?.[0];
+      expect(savedEntries?.at(-1)).toMatchObject({ note: "喝了半杯" });
+      expect(savedEntries?.at(-1)?.completedAt).toBeTruthy();
+    });
+  });
+
+  it("does not offer a random comfort pick while energy is not low", async () => {
+    const user = userEvent.setup();
+    renderApp(
+      createRepository([makeTask({ id: "today-task", inToday: true })]),
+      undefined,
+      {
+        energyRepository: createEnergyRepository(),
+        comfortRepository: createComfortRepository([
+          {
+            id: "comfort-1",
+            title: "喝杯热水",
+            effort: "low",
+            createdAt: "2026-09-20T00:00:00.000Z",
+            updatedAt: "2026-09-20T00:00:00.000Z",
+          },
+        ]),
+      },
+    );
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    await user.click(screen.getByRole("button", { name: "照顾自己" }));
+
+    expect(screen.getByText("把今日状态调成「低电量」后，可以随机抽一个。")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "随机抽一个" })).not.toBeInTheDocument();
   });
 
   it("tracks time on the original task and stops when switching tasks", async () => {
