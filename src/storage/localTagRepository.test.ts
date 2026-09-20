@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { Tag } from "../domain/tag";
+import { defaultUserSettings, type Tag } from "../domain/tag";
 import {
   LocalTagRepository,
   SETTINGS_STORAGE_KEY,
@@ -25,18 +25,19 @@ describe("LocalTagRepository", () => {
 
     await expect(repository.load()).resolves.toEqual({
       tags: [],
-      settings: { tagsEnabled: false },
+      settings: defaultUserSettings,
     });
   });
 
   it("saves and restores tags and settings independently", async () => {
     const repository = new LocalTagRepository();
     await repository.saveTags([learning]);
-    await repository.saveSettings({ tagsEnabled: true });
+    const settings = { ...defaultUserSettings, tagsEnabled: true };
+    await repository.saveSettings(settings);
 
     await expect(repository.load()).resolves.toEqual({
       tags: [learning],
-      settings: { tagsEnabled: true },
+      settings,
     });
     expect(window.localStorage.getItem(TAGS_STORAGE_KEY)).toContain("学习");
     expect(window.localStorage.getItem(SETTINGS_STORAGE_KEY)).toContain("true");

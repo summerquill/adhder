@@ -23,7 +23,21 @@ import {
 import { useTagRepository } from "../storage/TagRepositoryContext";
 import { useTaskRepository } from "../storage/TaskRepositoryContext";
 
-type ActivePage = "tasks" | "settings";
+type ActiveTab = "inbox" | "today" | "action" | "settings";
+
+const tabDefinitions: Array<{ id: ActiveTab; label: string; index: string }> = [
+  { id: "inbox", label: "快速 Inbox", index: "01" },
+  { id: "today", label: "今日 3 件事", index: "02" },
+  { id: "action", label: "开始一个小动作", index: "03" },
+  { id: "settings", label: "设置", index: "04" },
+];
+
+const tabTitles: Record<ActiveTab, string> = {
+  inbox: "快速 Inbox",
+  today: "今日 3 件事",
+  action: "开始一个小动作",
+  settings: "个性化设置",
+};
 
 export default function App() {
   const taskRepository = useTaskRepository();
@@ -33,7 +47,7 @@ export default function App() {
   const [settings, setSettings] = useState<UserSettings>(defaultUserSettings);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [pendingSuggestion, setPendingSuggestion] = useState("");
-  const [activePage, setActivePage] = useState<ActivePage>("tasks");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("inbox");
   const [isReady, setIsReady] = useState(false);
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? tasks[0] ?? null;
@@ -46,12 +60,17 @@ export default function App() {
       ([taskSnapshot, tagSnapshot]) => {
         if (!isActive) return;
 
+        const validTagIds = new Set(tagSnapshot.tags.map((tag) => tag.id));
+        const migratedTasks = taskSnapshot.tasks.map((task) => ({
+          ...task,
+          tagIds: task.tagIds.filter((tagId) => validTagIds.has(tagId)),
+        }));
         const initialSelectedTask =
-          taskSnapshot.tasks.find((task) => task.id === taskSnapshot.selectedTaskId) ??
-          taskSnapshot.tasks[0] ??
+          migratedTasks.find((task) => task.id === taskSnapshot.selectedTaskId) ??
+          migratedTasks[0] ??
           null;
 
-        setTasks(taskSnapshot.tasks);
+        setTasks(migratedTasks);
         setSelectedTaskId(taskSnapshot.selectedTaskId);
         setPendingSuggestion(
           initialSelectedTask
@@ -99,6 +118,11 @@ export default function App() {
     const task = tasks.find((item) => item.id === taskId);
     setSelectedTaskId(taskId);
     setPendingSuggestion(task ? makeAlternateNextStep(task.title, task.nextStep) : "");
+  }
+
+  function openTask(taskId: string) {
+    selectTask(taskId);
+    setActiveTab("action");
   }
 
   function handleCreateTask(title: string) {
@@ -192,67 +216,103 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header className="topbar">
+      <header className="app-header">
         <div>
           <p className="eyebrow">ADHDer</p>
-          <h1>{activePage === "tasks" ? "今天只推进一点点" : "个性化设置"}</h1>
+          <h1>{tabTitles[activeTab]}</h1>
         </div>
-        <div className="topbar-actions">
-          {activePage === "tasks" ? (
-            <div className="today-meter" aria-label="今日重点数量">
-              <span>{todayTaskCount}</span>
-              <small>件今日重点</small>
-            </div>
-          ) : null}
-          <button
-            className="secondary settings-button"
-            type="button"
-            onClick={() => setActivePage(activePage === "tasks" ? "settings" : "tasks")}
-          >
-            {activePage === "tasks" ? "设置" : "返回任务"}
-          </button>
+        <div className="today-meter" aria-label="今日重点数量">
+          <span>{todayTaskCount}</span>
+          <small>件今日重点</small>
         </div>
       </header>
 
-      {activePage === "tasks" ? (
-        <section className="workspace" aria-label="ADHDer 工作区">
-          <InboxPanel
-            tasks={tasks}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={selectTask}
-            onCreateTask={handleCreateTask}
-            onAddTaskToToday={handleAddTaskToToday}
-          />
-          <TodayPanel
-            tasks={tasks}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={selectTask}
-            onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
-          />
-          <TaskDetailPanel
-            task={selectedTask}
-            tags={tags}
-            tagsEnabled={settings.tagsEnabled}
-            pendingSuggestion={pendingSuggestion}
-            onEditNextStep={handleEditNextStep}
-            onRegenerateStep={handleRegenerateStep}
-            onAcceptStep={handleAcceptStep}
-            onStatusChange={handleStatusChange}
-            onTimeSpent={handleTimeSpent}
-            onAddTag={handleAddTagToTask}
-            onRemoveTag={handleRemoveTagFromTask}
-          />
-        </section>
-      ) : (
-        <SettingsPage
-          settings={settings}
-          tags={tags}
-          tasks={tasks}
-          onToggleTags={(tagsEnabled) => setSettings({ tagsEnabled })}
-          onCreateTag={handleCreateTag}
-          onDeleteTag={handleDeleteTag}
-        />
-      )}
+      <section className="app-content">
+        {activeTab === "inbox" ? (
+          <div className="tab-panel" role="tabpanel" aria-label="快速 Inbox">
+            <InboxPanel
+              tasks={tasks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={openTask}
+              onCreateTask={handleCreateTask}
+              onAddTaskToToday={handleAddTaskToToday}
+            />
+          </div>
+        ) : null}
+
+        {activeTab === "today" ? (
+          <div className="tab-panel" role="tabpanel" aria-label="今日 3 件事">
+            <TodayPanel
+              tasks={tasks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={openTask}
+              onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
+            />
+          </div>
+        ) : null}
+
+        {activeTab === "action" ? (
+          <div className="tab-panel" role="tabpanel" aria-label="开始一个小动作">
+            <TaskDetailPanel
+              task={selectedTask}
+              tags={tags}
+              tagsEnabled={settings.tagsEnabled}
+              nextStepEnabled={settings.nextStepEnabled}
+              countdownPresets={settings.countdownPresets}
+              pendingSuggestion={pendingSuggestion}
+              onEditNextStep={handleEditNextStep}
+              onRegenerateStep={handleRegenerateStep}
+              onAcceptStep={handleAcceptStep}
+              onStatusChange={handleStatusChange}
+              onTimeSpent={handleTimeSpent}
+              onAddTag={handleAddTagToTask}
+              onRemoveTag={handleRemoveTagFromTask}
+            />
+          </div>
+        ) : null}
+
+        {activeTab === "settings" ? (
+          <div className="tab-panel settings-tab-panel" role="tabpanel" aria-label="设置">
+            <SettingsPage
+              settings={settings}
+              tags={tags}
+              tasks={tasks}
+              onToggleTags={(tagsEnabled) =>
+                setSettings((currentSettings) => ({ ...currentSettings, tagsEnabled }))
+              }
+              onToggleNextStep={(nextStepEnabled) =>
+                setSettings((currentSettings) => ({ ...currentSettings, nextStepEnabled }))
+              }
+              onCountdownPresetsChange={(countdownPresets) =>
+                setSettings((currentSettings) => ({ ...currentSettings, countdownPresets }))
+              }
+              onCreateTag={handleCreateTag}
+              onDeleteTag={handleDeleteTag}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      <nav className="tab-bar" aria-label="主导航" role="tablist">
+        {tabDefinitions.map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-button${activeTab === tab.id ? " active" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="tab-index" aria-hidden="true">
+              {tab.index}
+            </span>
+            <span>{tab.label}</span>
+            {tab.id === "today" && todayTaskCount > 0 ? (
+              <span className="tab-badge">{todayTaskCount}</span>
+            ) : null}
+          </button>
+        ))}
+      </nav>
     </main>
   );
 }

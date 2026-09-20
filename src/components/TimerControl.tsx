@@ -3,17 +3,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Task, TaskStatus } from "../domain/task";
 import { formatDuration, type TimerMode } from "../domain/timer";
 
-const timerDurations = [5, 10, 15] as const;
-
 type TimerControlProps = {
   task: Task | null;
+  countdownPresets: readonly number[];
   onStatusChange: (status: TaskStatus) => void;
   onTimeSpent: (taskId: string, seconds: number) => void;
 };
 
-export function TimerControl({ task, onStatusChange, onTimeSpent }: TimerControlProps) {
+export function TimerControl({
+  task,
+  countdownPresets,
+  onStatusChange,
+  onTimeSpent,
+}: TimerControlProps) {
   const [mode, setMode] = useState<TimerMode>("countdown");
-  const [selectedMinutes, setSelectedMinutes] = useState<number>(5);
+  const [selectedMinutes, setSelectedMinutes] = useState<number>(countdownPresets[0] ?? 5);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [running, setRunning] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -41,6 +45,14 @@ export function TimerControl({ task, onStatusChange, onTimeSpent }: TimerControl
       setHasStarted(false);
     }
   }, [elapsedSeconds, mode, running, selectedMinutes]);
+
+  useEffect(() => {
+    if (countdownPresets.includes(selectedMinutes)) return;
+    setSelectedMinutes(countdownPresets[0] ?? 5);
+    setRunning(false);
+    setHasStarted(false);
+    setElapsedSeconds(0);
+  }, [countdownPresets, selectedMinutes]);
 
   const buttonLabel = useMemo(() => {
     if (running) return "暂停";
@@ -115,7 +127,7 @@ export function TimerControl({ task, onStatusChange, onTimeSpent }: TimerControl
 
       {mode === "countdown" ? (
         <div className="timer-options" role="group" aria-label="选择计时时长">
-          {timerDurations.map((minutes) => (
+          {countdownPresets.map((minutes) => (
             <button
               key={minutes}
               className={`timer-option${selectedMinutes === minutes ? " active" : ""}`}

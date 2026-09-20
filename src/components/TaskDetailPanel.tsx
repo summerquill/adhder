@@ -8,6 +8,8 @@ type TaskDetailPanelProps = {
   task: Task | null;
   tags: readonly Tag[];
   tagsEnabled: boolean;
+  nextStepEnabled: boolean;
+  countdownPresets: readonly number[];
   pendingSuggestion: string;
   onEditNextStep: (nextStep: string) => void;
   onRegenerateStep: () => void;
@@ -22,6 +24,8 @@ export function TaskDetailPanel({
   task,
   tags,
   tagsEnabled,
+  nextStepEnabled,
+  countdownPresets,
   pendingSuggestion,
   onEditNextStep,
   onRegenerateStep,
@@ -47,7 +51,8 @@ export function TaskDetailPanel({
         <p>{task ? `当前状态：${task.status}` : "先在 Inbox 里收集一件事，再把它拆成下一步。"}</p>
       </article>
 
-      <section className="next-step" aria-labelledby="nextStepTitle">
+      {nextStepEnabled ? (
+        <section className="next-step" aria-labelledby="nextStepTitle">
         <div className="mini-head">
           <h3 id="nextStepTitle">下一步建议</h3>
           <button id="regenerateStep" type="button" disabled={!task} onClick={onRegenerateStep}>
@@ -71,8 +76,9 @@ export function TaskDetailPanel({
           value={task?.nextStep ?? ""}
           disabled={!task}
           onChange={(event) => onEditNextStep(event.target.value)}
-        />
-      </section>
+          />
+        </section>
+      ) : null}
 
       {tagsEnabled && task ? (
         <TagSelector
@@ -84,8 +90,9 @@ export function TaskDetailPanel({
       ) : null}
 
       <TimerControl
-        key={task?.id ?? "empty"}
+        key={`${task?.id ?? "empty"}-${countdownPresets.join("-")}`}
         task={task}
+        countdownPresets={countdownPresets}
         onStatusChange={onStatusChange}
         onTimeSpent={onTimeSpent}
       />

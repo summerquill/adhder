@@ -119,6 +119,7 @@ describe("App", () => {
       inToday: true,
     });
     renderApp(createRepository([task]));
+    await user.click(await screen.findByRole("tab", { name: /开始一个小动作/ }));
 
     const nextStepInput = await screen.findByLabelText("下一步动作");
     const suggestion = screen.getByTestId("suggestion-text").textContent;
@@ -133,26 +134,26 @@ describe("App", () => {
     const user = userEvent.setup();
     renderApp(
       createRepository([makeTask({ inToday: true })]),
-      createTagRepository([], { tagsEnabled: false }),
+      createTagRepository([], { ...defaultUserSettings, tagsEnabled: false }),
     );
 
-    await screen.findByLabelText("下一步动作");
+    await screen.findByLabelText("先把脑子里的事放下来");
     expect(screen.queryByText("任务标签")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "设置" }));
-    expect(screen.getByRole("switch")).not.toBeChecked();
+    await user.click(screen.getByRole("tab", { name: /设置/ }));
+    expect(screen.getByRole("switch", { name: /启用多层标签/ })).not.toBeChecked();
     expect(screen.queryByText("标签管理")).not.toBeInTheDocument();
   });
 
   it("enables tags, creates a hierarchy and assigns a tag to a task", async () => {
     const user = userEvent.setup();
     const task = makeTask({ id: "task-tagged", title: "学习 AI", inToday: true });
-    const tagRepository = createTagRepository([], { tagsEnabled: false });
+    const tagRepository = createTagRepository([], { ...defaultUserSettings, tagsEnabled: false });
     renderApp(createRepository([task]), tagRepository);
 
-    await screen.findByLabelText("下一步动作");
-    await user.click(screen.getByRole("button", { name: "设置" }));
-    await user.click(screen.getByRole("switch"));
+    await screen.findByLabelText("先把脑子里的事放下来");
+    await user.click(screen.getByRole("tab", { name: /设置/ }));
+    await user.click(screen.getByRole("switch", { name: /启用多层标签/ }));
 
     await user.type(screen.getByLabelText("标签名称"), "学习");
     await user.click(screen.getByRole("button", { name: "添加标签" }));
@@ -162,7 +163,7 @@ describe("App", () => {
     await user.selectOptions(parentSelect, within(parentSelect).getByRole("option", { name: "学习" }));
     await user.click(screen.getByRole("button", { name: "添加标签" }));
 
-    await user.click(screen.getByRole("button", { name: "返回任务" }));
+    await user.click(screen.getByRole("tab", { name: /开始一个小动作/ }));
     const taskTagSelect = screen.getByLabelText("选择任务标签");
     await user.selectOptions(
       taskTagSelect,
@@ -171,12 +172,48 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "添加" }));
 
     expect(screen.getByText("学习 / AI")).toBeInTheDocument();
-    await waitFor(() => expect(tagRepository.saveSettings).toHaveBeenCalledWith({ tagsEnabled: true }));
+    await waitFor(() =>
+      expect(tagRepository.saveSettings).toHaveBeenLastCalledWith({
+        ...defaultUserSettings,
+        tagsEnabled: true,
+      }),
+    );
+  });
+
+  it("can hide and show the next-step section from settings", async () => {
+    const user = userEvent.setup();
+    renderApp(createRepository([makeTask({ id: "next-step-task", inToday: true })]));
+
+    await user.click(await screen.findByRole("tab", { name: /开始一个小动作/ }));
+    expect(screen.getByText("下一步建议")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /设置/ }));
+    await user.click(screen.getByRole("switch", { name: /显示下一步建议/ }));
+    await user.click(screen.getByRole("tab", { name: /开始一个小动作/ }));
+
+    expect(screen.queryByText("下一步建议")).not.toBeInTheDocument();
+  });
+
+  it("supports up to three custom countdown presets", async () => {
+    const user = userEvent.setup();
+    renderApp(createRepository([makeTask({ id: "timer-task", inToday: true })]));
+
+    await user.click(await screen.findByRole("tab", { name: /设置/ }));
+    await user.click(screen.getByRole("button", { name: "删除 15 分钟选项" }));
+    await user.type(screen.getByLabelText("自定义倒计时分钟数"), "25");
+    await user.click(screen.getByRole("button", { name: "添加时长" }));
+    await user.click(screen.getByRole("tab", { name: /开始一个小动作/ }));
+
+    expect(screen.getByRole("button", { name: "5 分钟" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "10 分钟" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "25 分钟" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "15 分钟" })).not.toBeInTheDocument();
   });
 
   it("records a task status immediately", async () => {
     const user = userEvent.setup();
     renderApp(createRepository([makeTask({ inToday: true })]));
+    await user.click(await screen.findByRole("tab", { name: /开始一个小动作/ }));
 
     await user.click(await screen.findByRole("button", { name: "完成" }));
 
@@ -192,6 +229,7 @@ describe("App", () => {
     renderApp(repository);
 
     await screen.findAllByText("任务 A");
+    fireEvent.click(screen.getByRole("tab", { name: /开始一个小动作/ }));
     vi.useFakeTimers();
 
     fireEvent.click(screen.getByRole("button", { name: "正计时" }));
@@ -203,6 +241,7 @@ describe("App", () => {
 
     expect(screen.getByText("00:01", { selector: "strong" })).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
     const taskBTitle = screen.getAllByText("任务 B")[0]!;
     const taskBCard = taskBTitle.closest("article");
     expect(taskBCard).not.toBeNull();

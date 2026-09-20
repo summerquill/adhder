@@ -21,6 +21,7 @@ describe("TimerControl", () => {
     render(
       <TimerControl
         task={task}
+        countdownPresets={[5, 10, 15]}
         onStatusChange={onStatusChange}
         onTimeSpent={onTimeSpent}
       />,
@@ -59,6 +60,7 @@ describe("TimerControl", () => {
     render(
       <TimerControl
         task={task}
+        countdownPresets={[5, 10, 15]}
         onStatusChange={onStatusChange}
         onTimeSpent={onTimeSpent}
       />,

@@ -2,12 +2,15 @@ import type { Tag, UserSettings } from "../domain/tag";
 import type { Task } from "../domain/task";
 import { TagManager } from "./TagManager";
 import { TagTimeStats } from "./TagTimeStats";
+import { TimerPresetSettings } from "./TimerPresetSettings";
 
 type SettingsPageProps = {
   settings: UserSettings;
   tags: readonly Tag[];
   tasks: readonly Task[];
   onToggleTags: (enabled: boolean) => void;
+  onToggleNextStep: (enabled: boolean) => void;
+  onCountdownPresetsChange: (presets: number[]) => void;
   onCreateTag: (name: string, parentId: string | null) => void;
   onDeleteTag: (tagId: string) => void;
 };
@@ -17,6 +20,8 @@ export function SettingsPage({
   tags,
   tasks,
   onToggleTags,
+  onToggleNextStep,
+  onCountdownPresetsChange,
   onCreateTag,
   onDeleteTag,
 }: SettingsPageProps) {
@@ -38,7 +43,25 @@ export function SettingsPage({
             onChange={(event) => onToggleTags(event.target.checked)}
           />
         </label>
+
+        <label className="settings-toggle">
+          <span>
+            <strong>显示下一步建议</strong>
+            <small>关闭后仍保留已有下一步内容，只在主界面隐藏建议区域。</small>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings.nextStepEnabled}
+            onChange={(event) => onToggleNextStep(event.target.checked)}
+          />
+        </label>
       </section>
+
+      <TimerPresetSettings
+        presets={settings.countdownPresets}
+        onChange={onCountdownPresetsChange}
+      />
 
       {settings.tagsEnabled ? (
         <>

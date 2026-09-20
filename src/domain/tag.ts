@@ -8,10 +8,16 @@ export type Tag = {
 
 export type UserSettings = {
   tagsEnabled: boolean;
+  nextStepEnabled: boolean;
+  countdownPresets: number[];
 };
+
+export const defaultCountdownPresets = [5, 10, 15];
 
 export const defaultUserSettings: UserSettings = {
   tagsEnabled: false,
+  nextStepEnabled: true,
+  countdownPresets: [...defaultCountdownPresets],
 };
 
 function createTagId(): string {
@@ -45,12 +51,32 @@ export function normalizeTag(value: unknown): Tag | null {
   };
 }
 
+export function normalizeCountdownPresets(value: unknown): number[] {
+  if (!Array.isArray(value)) return [...defaultCountdownPresets];
+
+  const presets = Array.from(
+    new Set(
+      value.filter(
+        (minutes): minutes is number =>
+          typeof minutes === "number" &&
+          Number.isInteger(minutes) &&
+          minutes > 0 &&
+          minutes <= 180,
+      ),
+    ),
+  ).slice(0, 3);
+
+  return presets.length > 0 ? presets : [...defaultCountdownPresets];
+}
+
 export function normalizeUserSettings(value: unknown): UserSettings {
   if (!value || typeof value !== "object") return { ...defaultUserSettings };
 
   const settings = value as Record<string, unknown>;
   return {
     tagsEnabled: typeof settings.tagsEnabled === "boolean" ? settings.tagsEnabled : false,
+    nextStepEnabled: typeof settings.nextStepEnabled === "boolean" ? settings.nextStepEnabled : true,
+    countdownPresets: normalizeCountdownPresets(settings.countdownPresets),
   };
 }
 
