@@ -27,6 +27,18 @@
   --status-paused-soft: #fdf5d9;
   --status-done: #2f6fb5;
   --status-done-soft: #e7f0fb;
+  --tag-teal: #2f7d6d;
+  --tag-teal-soft: #e8f4f0;
+  --tag-blue: #2f6fb5;
+  --tag-blue-soft: #e8f1fb;
+  --tag-purple: #6b5bb5;
+  --tag-purple-soft: #eeeafc;
+  --tag-amber: #9a7b16;
+  --tag-amber-soft: #fdf4d8;
+  --tag-rose: #b04a6a;
+  --tag-rose-soft: #fdecf1;
+  --tag-slate: #5c6b73;
+  --tag-slate-soft: #eef2f4;
   --shadow: 0 14px 36px rgba(44, 65, 58, 0.1);
 }
 
@@ -665,9 +677,14 @@ h3 {
 
 .tag-create-form {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 14px;
+}
+
+.tag-create-form .tag-color-picker,
+.tag-create-form button[type="submit"] {
+  grid-column: 1 / -1;
 }
 
 .tag-manager-list,
@@ -1391,12 +1408,8 @@ button.care-entry:hover {
 }
 
 .tag-create-block .tag-create-form {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   margin-bottom: 0;
-}
-
-.tag-create-block .tag-create-form input {
-  grid-column: 1 / -1;
 }
 
 .tag-choice-list {
@@ -1479,4 +1492,88 @@ button.care-entry:hover {
   min-height: 38px;
   margin-top: 10px;
   font-size: 12px;
+}
+
+.tag-color-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.tag-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-color-swatch {
+  flex: none;
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+.tag-color-swatch.active {
+  border-color: var(--ink);
+}
+
+.tag-color-teal {
+  background: var(--tag-teal);
+}
+
+.tag-color-blue {
+  background: var(--tag-blue);
+}
+
+.tag-color-purple {
+  background: var(--tag-purple);
+}
+
+.tag-color-amber {
+  background: var(--tag-amber);
+}
+
+.tag-color-rose {
+  background: var(--tag-rose);
+}
+
+.tag-color-slate {
+  background: var(--tag-slate);
+}
+
+.tag-choice-label,
+.tag-manager-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 标签颜色作为任务项底色，放在 .task-item.selected 之后以保证选中时仍然可见 */
+.task-item.tag-tint-teal {
+  background: var(--tag-teal-soft);
+}
+
+.task-item.tag-tint-blue {
+  background: var(--tag-blue-soft);
+}
+
+.task-item.tag-tint-purple {
+  background: var(--tag-purple-soft);
+}
+
+.task-item.tag-tint-amber {
+  background: var(--tag-amber-soft);
+}
+
+.task-item.tag-tint-rose {
+  background: var(--tag-rose-soft);
+}
+
+.task-item.tag-tint-slate {
+  background: var(--tag-slate-soft);
 }

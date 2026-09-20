@@ -224,6 +224,7 @@ describe("App", () => {
       id: "learning",
       name: "学习",
       parentId: null,
+      color: "teal",
       createdAt: "2026-09-20T00:00:00.000Z",
       updatedAt: "2026-09-20T00:00:00.000Z",
     };
@@ -241,10 +242,31 @@ describe("App", () => {
     await user.click(within(dialog).getByRole("button", { name: "完成" }));
 
     expect(screen.getByRole("button", { name: "学习" })).toBeInTheDocument();
+    expect(screen.getByText("标签任务").closest("article")).toHaveClass("tag-tint-teal");
     await waitFor(() => {
       const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
       expect(savedTasks?.[0]?.tagIds).toEqual(["learning"]);
     });
+  });
+
+  it("uses a colored tag as the task card background", async () => {
+    const work: Tag = {
+      id: "work",
+      name: "工作",
+      parentId: null,
+      color: "blue",
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+    };
+    renderApp(
+      createRepository([
+        makeTask({ id: "tinted-task", title: "带色任务", inToday: true, tagIds: [work.id] }),
+      ]),
+      createTagRepository([work], { ...defaultUserSettings, tagsEnabled: true }),
+    );
+
+    await screen.findByText("带色任务");
+    expect(screen.getByText("带色任务").closest("article")).toHaveClass("tag-tint-blue");
   });
 
   it("keeps a single tag by replacing the previous choice", async () => {
@@ -253,6 +275,7 @@ describe("App", () => {
       id: "learning",
       name: "学习",
       parentId: null,
+      color: "teal",
       createdAt: "2026-09-20T00:00:00.000Z",
       updatedAt: "2026-09-20T00:00:00.000Z",
     };
@@ -260,6 +283,7 @@ describe("App", () => {
       id: "sport",
       name: "运动",
       parentId: null,
+      color: "teal",
       createdAt: "2026-09-20T00:00:00.000Z",
       updatedAt: "2026-09-20T00:00:00.000Z",
     };

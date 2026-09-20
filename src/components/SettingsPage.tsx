@@ -1,4 +1,4 @@
-import type { Tag, UserSettings } from "../domain/tag";
+import type { Tag, TagColor, UserSettings } from "../domain/tag";
 import type { Task } from "../domain/task";
 import { TagManager } from "./TagManager";
 import { TagTimeStats } from "./TagTimeStats";
@@ -14,7 +14,7 @@ type SettingsPageProps = {
   onToggleCelebrationSound: (enabled: boolean) => void;
   onPreviewCelebration: () => void;
   onCountdownPresetsChange: (presets: number[]) => void;
-  onCreateTag: (name: string, parentId: string | null) => void;
+  onCreateTag: (name: string, parentId: string | null, color: TagColor) => void;
   onDeleteTag: (tagId: string) => void;
 };
 

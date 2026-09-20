@@ -11,6 +11,7 @@ const learning: Tag = {
   id: "learning",
   name: "学习",
   parentId: null,
+  color: "teal",
   createdAt: "2026-09-20T00:00:00.000Z",
   updatedAt: "2026-09-20T00:00:00.000Z",
 };

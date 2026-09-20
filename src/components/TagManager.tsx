@@ -1,24 +1,39 @@
 import { useState, type FormEvent } from "react";
 
-import { buildTagPath, getTagDepth, sortTagsHierarchically, type Tag } from "../domain/tag";
+import {
+  buildTagPath,
+  defaultTagColor,
+  getTagDepth,
+  sortTagsHierarchically,
+  type Tag,
+  type TagColor,
+} from "../domain/tag";
+import { TagColorPicker } from "./TagColorPicker";
 
 type TagManagerProps = {
   tags: readonly Tag[];
-  onCreateTag: (name: string, parentId: string | null) => void;
+  onCreateTag: (name: string, parentId: string | null, color: TagColor) => void;
   onDeleteTag: (tagId: string) => void;
 };
 
 export function TagManager({ tags, onCreateTag, onDeleteTag }: TagManagerProps) {
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
+  const [color, setColor] = useState<TagColor>(defaultTagColor);
   const sortedTags = sortTagsHierarchically(tags);
+
+  function handleParentChange(nextParentId: string) {
+    setParentId(nextParentId);
+    const parent = tags.find((tag) => tag.id === nextParentId);
+    setColor(parent ? parent.color : defaultTagColor);
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
-    onCreateTag(trimmedName, parentId || null);
+    onCreateTag(trimmedName, parentId || null, color);
     setName("");
   }
 
@@ -44,7 +59,7 @@ export function TagManager({ tags, onCreateTag, onDeleteTag }: TagManagerProps) 
         <select
           aria-label="父级标签"
           value={parentId}
-          onChange={(event) => setParentId(event.target.value)}
+          onChange={(event) => handleParentChange(event.target.value)}
         >
           <option value="">创建为一级标签</option>
           {sortedTags.map((tag) => (
@@ -54,6 +69,7 @@ export function TagManager({ tags, onCreateTag, onDeleteTag }: TagManagerProps) 
             </option>
           ))}
         </select>
+        <TagColorPicker value={color} onChange={setColor} />
         <button type="submit">添加标签</button>
       </form>
 
@@ -67,7 +83,10 @@ export function TagManager({ tags, onCreateTag, onDeleteTag }: TagManagerProps) 
               key={tag.id}
               style={{ paddingLeft: `${getTagDepth(tag.id, tags) * 18}px` }}
             >
-              <span>{tag.name}</span>
+              <span className="tag-manager-name">
+                <span className={`tag-color-dot tag-color-${tag.color}`} aria-hidden="true" />
+                {tag.name}
+              </span>
               <button type="button" className="danger-text" onClick={() => handleDelete(tag)}>
                 删除
               </button>

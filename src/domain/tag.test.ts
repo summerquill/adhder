@@ -7,9 +7,12 @@ import {
   getAncestorTagIds,
   getDescendantTagIds,
   getTagDepth,
+  getTagColor,
   getVisibleTags,
   hasChildTags,
+  normalizeTag,
   normalizeUserSettings,
+  tagColors,
   sortTagsHierarchically,
   type Tag,
 } from "./tag";
@@ -18,6 +21,7 @@ const learning: Tag = {
   id: "learning",
   name: "学习",
   parentId: null,
+  color: "teal",
   createdAt: "2026-09-20T00:00:00.000Z",
   updatedAt: "2026-09-20T00:00:00.000Z",
 };
@@ -26,6 +30,7 @@ const ai: Tag = {
   id: "ai",
   name: "AI",
   parentId: learning.id,
+  color: "teal",
   createdAt: "2026-09-20T00:01:00.000Z",
   updatedAt: "2026-09-20T00:01:00.000Z",
 };
@@ -42,7 +47,42 @@ describe("tag domain", () => {
     expect(tag).toMatchObject({
       name: "英语",
       parentId: learning.id,
+      color: "teal",
     });
+  });
+
+  it("assigns explicit colors and inherits the parent color", () => {
+    const explicit = createTag("英语", learning.id, [learning], "rose");
+    const inherited = createTag("数学", learning.id, [learning]);
+    const standalone = createTag("生活", null, [learning]);
+
+    expect(explicit.color).toBe("rose");
+    expect(inherited.color).toBe(learning.color);
+    expect(tagColors).toContain(standalone.color);
+  });
+
+  it("migrates tags without a valid color to a stable color", () => {
+    const legacy = {
+      id: "legacy-tag",
+      name: "旧标签",
+      parentId: null,
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+    };
+
+    const first = normalizeTag(legacy);
+    const second = normalizeTag(legacy);
+
+    expect(first?.color).toBe(second?.color);
+    expect(tagColors).toContain(first?.color);
+    expect(normalizeTag({ ...legacy, color: "unknown" })?.color).toBe(first?.color);
+    expect(normalizeTag({ ...legacy, color: "rose" })?.color).toBe("rose");
+  });
+
+  it("reads the color of a task's tag", () => {
+    expect(getTagColor(learning.id, [learning])).toBe(learning.color);
+    expect(getTagColor(null, [learning])).toBeNull();
+    expect(getTagColor("missing", [learning])).toBeNull();
   });
 
   it("reveals child tags only after their parent is expanded", () => {
@@ -50,6 +90,7 @@ describe("tag domain", () => {
       id: "advanced",
       name: "进阶",
       parentId: ai.id,
+      color: "teal",
       createdAt: "2026-09-20T00:02:00.000Z",
       updatedAt: "2026-09-20T00:02:00.000Z",
     };

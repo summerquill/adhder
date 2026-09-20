@@ -1,14 +1,21 @@
 import { useState, type FormEvent } from "react";
 
-import { buildTagPath, sortTagsHierarchically, type Tag } from "../domain/tag";
+import {
+  buildTagPath,
+  defaultTagColor,
+  sortTagsHierarchically,
+  type Tag,
+  type TagColor,
+} from "../domain/tag";
 import type { Task } from "../domain/task";
 import { TagChoiceList } from "./TagChoiceList";
+import { TagColorPicker } from "./TagColorPicker";
 
 type TagSelectionModalProps = {
   task: Task;
   tags: readonly Tag[];
   onSelectTag: (tagId: string | null) => void;
-  onCreateTag: (name: string, parentId: string | null) => Tag;
+  onCreateTag: (name: string, parentId: string | null, color: TagColor) => Tag;
   onClose: () => void;
 };
 
@@ -22,6 +29,7 @@ export function TagSelectionModal({
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagParentId, setNewTagParentId] = useState("");
+  const [newTagColor, setNewTagColor] = useState<TagColor>(defaultTagColor);
   const sortedTags = sortTagsHierarchically(tags);
   const selectedTagId = task.tagIds[0] ?? "";
 
@@ -30,9 +38,15 @@ export function TagSelectionModal({
     const name = newTagName.trim();
     if (!name) return;
 
-    const tag = onCreateTag(name, newTagParentId || null);
+    const tag = onCreateTag(name, newTagParentId || null, newTagColor);
     onSelectTag(tag.id);
     setNewTagName("");
+  }
+
+  function handleParentChange(nextParentId: string) {
+    setNewTagParentId(nextParentId);
+    const parent = tags.find((tag) => tag.id === nextParentId);
+    setNewTagColor(parent ? parent.color : defaultTagColor);
   }
 
   return (
@@ -82,7 +96,7 @@ export function TagSelectionModal({
               <select
                 aria-label="新标签的上级标签"
                 value={newTagParentId}
-                onChange={(event) => setNewTagParentId(event.target.value)}
+                onChange={(event) => handleParentChange(event.target.value)}
               >
                 <option value="">顶层标签</option>
                 {sortedTags.map((tag) => (
@@ -91,6 +105,7 @@ export function TagSelectionModal({
                   </option>
                 ))}
               </select>
+              <TagColorPicker value={newTagColor} onChange={setNewTagColor} />
               <button type="submit">创建标签</button>
             </form>
           </div>

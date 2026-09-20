@@ -73,7 +73,10 @@ export function TagChoiceList({
               style={{ paddingLeft: `${getTagDepth(tag.id, tags) * 16}px` }}
             >
               <label className="tag-choice-option">
-                <span>{tag.name}</span>
+                <span className="tag-choice-label">
+                  <span className={`tag-color-dot tag-color-${tag.color}`} aria-hidden="true" />
+                  <span>{tag.name}</span>
+                </span>
                 <input
                   type="radio"
                   name={name}

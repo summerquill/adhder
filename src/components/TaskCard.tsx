@@ -1,5 +1,5 @@
 import { getRepeatModeLabel } from "../domain/repeat";
-import { buildTagPath, type Tag } from "../domain/tag";
+import { buildTagPath, getTagColor, type Tag } from "../domain/tag";
 import { formatDuration } from "../domain/timer";
 import { taskStatusClassNames, type Task } from "../domain/task";
 
@@ -41,9 +41,12 @@ export function TaskCard({
   tagsEnabled = false,
 }: TaskCardProps) {
   const tagButtonLabel = getTagButtonLabel(task, tags);
+  const tagColor = getTagColor(task.tagIds[0] ?? null, tags);
 
   return (
-    <article className={`task-item${isSelected ? " selected" : ""}`}>
+    <article
+      className={`task-item${isSelected ? " selected" : ""}${tagColor ? ` tag-tint-${tagColor}` : ""}`}
+    >
       <button
         className="task-open-area"
         type="button"

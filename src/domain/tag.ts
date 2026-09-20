@@ -1,7 +1,23 @@
+export const tagColors = ["teal", "blue", "purple", "amber", "rose", "slate"] as const;
+
+export type TagColor = (typeof tagColors)[number];
+
+export const tagColorLabels: Record<TagColor, string> = {
+  teal: "青绿",
+  blue: "蓝色",
+  purple: "紫色",
+  amber: "琥珀",
+  rose: "玫红",
+  slate: "灰色",
+};
+
+export const defaultTagColor: TagColor = "teal";
+
 export type Tag = {
   id: string;
   name: string;
   parentId: string | null;
+  color: TagColor;
   createdAt: string;
   updatedAt: string;
 };
@@ -32,6 +48,30 @@ function createTagId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+export function isTagColor(value: unknown): value is TagColor {
+  return typeof value === "string" && tagColors.includes(value as TagColor);
+}
+
+function pickTagColorFromId(id: string): TagColor {
+  let hash = 0;
+
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 9973;
+  }
+
+  return tagColors[hash % tagColors.length] ?? defaultTagColor;
+}
+
+export function normalizeTagColor(value: unknown, fallbackId: string): TagColor {
+  return isTagColor(value) ? value : pickTagColorFromId(fallbackId);
+}
+
+export function getTagColor(tagId: string | null, tags: readonly Tag[]): TagColor | null {
+  if (!tagId) return null;
+
+  return tags.find((tag) => tag.id === tagId)?.color ?? null;
+}
+
 export function normalizeTag(value: unknown): Tag | null {
   if (!value || typeof value !== "object") return null;
 
@@ -50,6 +90,7 @@ export function normalizeTag(value: unknown): Tag | null {
     id: tag.id as string,
     name: (tag.name as string).trim(),
     parentId: tag.parentId as string | null,
+    color: normalizeTagColor(tag.color, tag.id as string),
     createdAt: tag.createdAt as string,
     updatedAt: tag.updatedAt as string,
   };
@@ -89,12 +130,22 @@ export function normalizeUserSettings(value: unknown): UserSettings {
   };
 }
 
-export function createTag(name: string, parentId: string | null, existingTags: readonly Tag[]): Tag {
+export function createTag(
+  name: string,
+  parentId: string | null,
+  existingTags: readonly Tag[],
+  color?: TagColor,
+): Tag {
   const now = new Date().toISOString();
+  const id = createTagId();
+  const parent = existingTags.find((tag) => tag.id === parentId) ?? null;
+
   return {
-    id: createTagId(),
+    id,
     name: name.trim(),
-    parentId: existingTags.some((tag) => tag.id === parentId) ? parentId : null,
+    parentId: parent ? parent.id : null,
+    // 未指定颜色时跟随父标签，保证同一分支视觉一致
+    color: color ?? parent?.color ?? pickTagColorFromId(id),
     createdAt: now,
     updatedAt: now,
   };

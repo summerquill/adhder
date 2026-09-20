@@ -34,6 +34,7 @@ import {
   defaultUserSettings,
   getDescendantTagIds,
   type Tag,
+  type TagColor,
   type UserSettings,
 } from "../domain/tag";
 import {
@@ -274,8 +275,8 @@ export default function App() {
     );
   }
 
-  function handleCreateTag(name: string, parentId: string | null): Tag {
-    const tag = createTag(name, parentId, tags);
+  function handleCreateTag(name: string, parentId: string | null, color?: TagColor): Tag {
+    const tag = createTag(name, parentId, tags, color);
     setTags((currentTags) => [...currentTags, tag]);
     return tag;
   }
