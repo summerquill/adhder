@@ -35,12 +35,13 @@ describe("LocalTaskRepository", () => {
     expect(window.localStorage.getItem(TASK_STORAGE_KEY)).toContain("恢复任务");
   });
 
-  it("ignores invalid data and legacy mock tasks", async () => {
+  it("migrates legacy tasks and ignores invalid or mock data", async () => {
     const repository = new LocalTaskRepository();
     const mockTask = makeTask({ id: "seed-1", title: "Mock 任务" });
+    const { timeSpentSeconds: _timeSpentSeconds, ...legacyTask } = storedTask;
     window.localStorage.setItem(
       TASK_STORAGE_KEY,
-      JSON.stringify([{ title: "缺少字段" }, mockTask, storedTask]),
+      JSON.stringify([{ title: "缺少字段" }, mockTask, legacyTask]),
     );
 
     await expect(repository.load()).resolves.toEqual({

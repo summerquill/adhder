@@ -57,10 +57,16 @@ button:active {
   transform: translateY(1px);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 button.secondary,
 .task-action,
 #regenerateStep,
 #acceptStep,
+.timer-mode-option,
 .timer-option,
 .status-option {
   color: var(--ink);
@@ -72,6 +78,7 @@ button.secondary:hover,
 .task-action:hover,
 #regenerateStep:hover,
 #acceptStep:hover,
+.timer-mode-option:hover,
 .timer-option:hover,
 .status-option:hover {
   border-color: var(--brand);
@@ -253,7 +260,8 @@ textarea {
   font-size: 12px;
 }
 
-.badge {
+.badge,
+.task-time {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -262,6 +270,11 @@ textarea {
   background: var(--blue-soft);
   color: #315a8a;
   font-weight: 720;
+}
+
+.task-time {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .task-actions {
@@ -358,11 +371,17 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
+.timer-mode-options,
 .timer-options,
 .timer-actions,
 .status-options {
   display: grid;
   gap: 8px;
+}
+
+.timer-mode-options {
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 10px;
 }
 
 .timer-options {
@@ -374,18 +393,32 @@ textarea {
   margin-top: 10px;
 }
 
+.timer-mode-option,
 .timer-option {
   min-height: 38px;
   padding: 0 8px;
   color: var(--muted);
 }
 
+.timer-mode-option.active,
 .timer-option.active,
 .status-option.active {
   border-color: var(--brand);
   background: var(--panel-strong);
   color: var(--brand-dark);
   font-weight: 780;
+}
+
+.task-time-total {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.task-time-total strong {
+  color: var(--brand-dark);
+  font-variant-numeric: tabular-nums;
 }
 
 .status-options {
@@ -428,6 +461,7 @@ textarea {
     min-height: 0;
   }
 
+  .timer-mode-options,
   .timer-options,
   .suggestion-card,
   .status-options {

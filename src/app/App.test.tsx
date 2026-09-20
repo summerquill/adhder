@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Task } from "../domain/task";
 import { makeTask } from "../test/fixtures";
@@ -39,6 +39,10 @@ function storedTasks() {
 describe("App", () => {
   beforeEach(() => {
     window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("collects a task and keeps it after the app is rendered again", async () => {
@@ -112,5 +116,40 @@ describe("App", () => {
     await user.click(await screen.findByRole("button", { name: "完成" }));
 
     expect(screen.getByText("当前状态：完成")).toBeInTheDocument();
+  });
+
+  it("tracks time on the original task and stops when switching tasks", async () => {
+    const tasks = [
+      makeTask({ id: "task-a", title: "任务 A", inToday: true }),
+      makeTask({ id: "task-b", title: "任务 B", inToday: false }),
+    ];
+    const repository = createRepository(tasks);
+    renderApp(repository);
+
+    await screen.findAllByText("任务 A");
+    vi.useFakeTimers();
+
+    fireEvent.click(screen.getByRole("button", { name: "正计时" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "开始" })[0]!);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText("00:01", { selector: "strong" })).toBeInTheDocument();
+
+    const taskBTitle = screen.getAllByText("任务 B")[0]!;
+    const taskBCard = taskBTitle.closest("article");
+    expect(taskBCard).not.toBeNull();
+    fireEvent.click(within(taskBCard as HTMLElement).getByRole("button", { name: "查看" }));
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    await act(async () => undefined);
+    const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
+    expect(savedTasks?.find((task) => task.id === "task-a")?.timeSpentSeconds).toBe(1);
+    expect(savedTasks?.find((task) => task.id === "task-b")?.timeSpentSeconds).toBe(0);
   });
 });

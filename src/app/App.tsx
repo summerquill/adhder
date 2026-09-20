@@ -5,6 +5,7 @@ import { TaskDetailPanel } from "../components/TaskDetailPanel";
 import { TodayPanel } from "../components/TodayPanel";
 import { makeAlternateNextStep } from "../domain/nextStep";
 import {
+  addTimeSpent,
   createTask,
   getTodayTasks,
   updateTask,
@@ -111,6 +112,12 @@ export default function App() {
     patchTask(selectedTask.id, { status });
   }
 
+  function handleTimeSpent(taskId: string, seconds: number) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) => (task.id === taskId ? addTimeSpent(task, seconds) : task)),
+    );
+  }
+
   if (!isReady) {
     return (
       <main className="app-shell" aria-busy="true">
@@ -153,6 +160,7 @@ export default function App() {
           onRegenerateStep={handleRegenerateStep}
           onAcceptStep={handleAcceptStep}
           onStatusChange={handleStatusChange}
+          onTimeSpent={handleTimeSpent}
         />
       </section>
     </main>

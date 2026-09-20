@@ -1,4 +1,4 @@
-import { isValidTask, type Task } from "../domain/task";
+import { normalizeTask, type Task } from "../domain/task";
 import type { TaskRepository, TaskSnapshot } from "./TaskRepository";
 
 export const TASK_STORAGE_KEY = "adhder.tasks.v1";
@@ -52,7 +52,10 @@ export class LocalTaskRepository implements TaskRepository {
       const parsed: unknown = JSON.parse(saved);
       if (!Array.isArray(parsed)) return [];
 
-      return parsed.filter(isValidTask).filter((task) => !isMockTask(task));
+      return parsed
+        .map(normalizeTask)
+        .filter((task): task is Task => task !== null)
+        .filter((task) => !isMockTask(task));
     } catch {
       return [];
     }

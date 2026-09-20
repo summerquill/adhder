@@ -1,3 +1,4 @@
+import { formatDuration } from "../domain/timer";
 import type { Task } from "../domain/task";
 
 type TaskCardProps = {
@@ -23,6 +24,9 @@ export function TaskCard({
       <div className="task-meta">
         <span className="badge">{task.status}</span>
         <span>{task.nextStep}</span>
+        {task.timeSpentSeconds > 0 ? (
+          <span className="task-time">已执行 {formatDuration(task.timeSpentSeconds)}</span>
+        ) : null}
       </div>
       <div className="task-actions">
         <button className="task-action" type="button" onClick={onSelect}>

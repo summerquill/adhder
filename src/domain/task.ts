@@ -10,16 +10,16 @@ export type Task = {
   status: TaskStatus;
   nextStep: string;
   inToday: boolean;
+  timeSpentSeconds: number;
   createdAt: string;
   updatedAt: string;
 };
 
-export function isValidTask(value: unknown): value is Task {
-  if (!value || typeof value !== "object") return false;
+export function normalizeTask(value: unknown): Task | null {
+  if (!value || typeof value !== "object") return null;
 
   const task = value as Record<string, unknown>;
-
-  return (
+  const isValid =
     typeof task.id === "string" &&
     typeof task.title === "string" &&
     typeof task.status === "string" &&
@@ -27,8 +27,31 @@ export function isValidTask(value: unknown): value is Task {
     typeof task.nextStep === "string" &&
     typeof task.inToday === "boolean" &&
     typeof task.createdAt === "string" &&
-    typeof task.updatedAt === "string"
-  );
+    typeof task.updatedAt === "string";
+
+  if (!isValid) return null;
+
+  const timeSpentSeconds =
+    typeof task.timeSpentSeconds === "number" &&
+    Number.isFinite(task.timeSpentSeconds) &&
+    task.timeSpentSeconds >= 0
+      ? Math.floor(task.timeSpentSeconds)
+      : 0;
+
+  return {
+    id: task.id as string,
+    title: task.title as string,
+    status: task.status as TaskStatus,
+    nextStep: task.nextStep as string,
+    inToday: task.inToday as boolean,
+    timeSpentSeconds,
+    createdAt: task.createdAt as string,
+    updatedAt: task.updatedAt as string,
+  };
+}
+
+export function isValidTask(value: unknown): value is Task {
+  return normalizeTask(value) !== null;
 }
 
 export function getTodayTasks(items: readonly Task[]): Task[] {
@@ -52,6 +75,7 @@ export function createTask(title: string): Task {
     status: "未开始",
     inToday: true,
     nextStep: makeNextStep(title),
+    timeSpentSeconds: 0,
     createdAt: now,
     updatedAt: now,
   };
@@ -63,4 +87,11 @@ export function updateTask(task: Task, patch: Partial<Omit<Task, "id" | "created
     ...patch,
     updatedAt: new Date().toISOString(),
   };
+}
+
+export function addTimeSpent(task: Task, seconds: number): Task {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  return updateTask(task, {
+    timeSpentSeconds: task.timeSpentSeconds + safeSeconds,
+  });
 }

@@ -9,6 +9,7 @@ type TaskDetailPanelProps = {
   onRegenerateStep: () => void;
   onAcceptStep: () => void;
   onStatusChange: (status: TaskStatus) => void;
+  onTimeSpent: (taskId: string, seconds: number) => void;
 };
 
 export function TaskDetailPanel({
@@ -18,6 +19,7 @@ export function TaskDetailPanel({
   onRegenerateStep,
   onAcceptStep,
   onStatusChange,
+  onTimeSpent,
 }: TaskDetailPanelProps) {
   const canAcceptSuggestion = Boolean(task && pendingSuggestion && pendingSuggestion !== task.nextStep);
 
@@ -62,7 +64,12 @@ export function TaskDetailPanel({
         />
       </section>
 
-      <TimerControl task={task} onStatusChange={onStatusChange} />
+      <TimerControl
+        key={task?.id ?? "empty"}
+        task={task}
+        onStatusChange={onStatusChange}
+        onTimeSpent={onTimeSpent}
+      />
       <StatusSelector task={task} onChange={onStatusChange} />
     </aside>
   );
