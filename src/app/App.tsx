@@ -12,48 +12,51 @@ import {
   type Task,
   type TaskStatus,
 } from "../domain/task";
-import {
-  loadSelectedTaskId,
-  loadTasks,
-  saveSelectedTaskId,
-  saveTasks,
-} from "../storage/taskStorage";
-
-type InitialTaskState = {
-  tasks: Task[];
-  selectedTaskId: string | null;
-};
-
-function loadInitialState(): InitialTaskState {
-  const tasks = loadTasks();
-  return {
-    tasks,
-    selectedTaskId: loadSelectedTaskId(tasks),
-  };
-}
+import { useTaskRepository } from "../storage/TaskRepositoryContext";
 
 export default function App() {
-  const [initialState] = useState(loadInitialState);
-  const [tasks, setTasks] = useState<Task[]>(initialState.tasks);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialState.selectedTaskId);
-
-  const initialSelectedTask =
-    initialState.tasks.find((task) => task.id === initialState.selectedTaskId) ?? initialState.tasks[0] ?? null;
-
-  const [pendingSuggestion, setPendingSuggestion] = useState(() =>
-    initialSelectedTask ? makeAlternateNextStep(initialSelectedTask.title, initialSelectedTask.nextStep) : "",
-  );
+  const repository = useTaskRepository();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [pendingSuggestion, setPendingSuggestion] = useState("");
+  const [isReady, setIsReady] = useState(false);
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? tasks[0] ?? null;
   const todayTaskCount = getTodayTasks(tasks).length;
 
   useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+    let isActive = true;
+
+    void repository.load().then((snapshot) => {
+      if (!isActive) return;
+
+      const initialSelectedTask =
+        snapshot.tasks.find((task) => task.id === snapshot.selectedTaskId) ?? snapshot.tasks[0] ?? null;
+
+      setTasks(snapshot.tasks);
+      setSelectedTaskId(snapshot.selectedTaskId);
+      setPendingSuggestion(
+        initialSelectedTask
+          ? makeAlternateNextStep(initialSelectedTask.title, initialSelectedTask.nextStep)
+          : "",
+      );
+      setIsReady(true);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [repository]);
 
   useEffect(() => {
-    saveSelectedTaskId(selectedTaskId);
-  }, [selectedTaskId]);
+    if (!isReady) return;
+    void repository.saveTasks(tasks);
+  }, [isReady, repository, tasks]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    void repository.saveSelectedTaskId(selectedTaskId);
+  }, [isReady, repository, selectedTaskId]);
 
   function patchTask(taskId: string, patch: Partial<Omit<Task, "id" | "createdAt">>) {
     setTasks((currentTasks) =>
@@ -109,6 +112,14 @@ export default function App() {
   function handleStatusChange(status: TaskStatus) {
     if (!selectedTask) return;
     patchTask(selectedTask.id, { status });
+  }
+
+  if (!isReady) {
+    return (
+      <main className="app-shell" aria-busy="true">
+        <div className="empty-state">正在加载任务...</div>
+      </main>
+    );
   }
 
   return (

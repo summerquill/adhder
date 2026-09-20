@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./app/App";
+import { TaskRepositoryProvider } from "./storage/TaskRepositoryContext";
+import { localTaskRepository } from "./storage/localTaskRepository";
 import "./styles/globals.css";
 
 const rootElement = document.getElementById("root");
@@ -12,6 +14,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <TaskRepositoryProvider repository={localTaskRepository}>
+      <App />
+    </TaskRepositoryProvider>
   </StrictMode>,
 );
