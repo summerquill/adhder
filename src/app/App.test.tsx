@@ -519,6 +519,31 @@ describe("App", () => {
     expect(playCelebration).toHaveBeenCalledTimes(1);
   });
 
+  it("generates comfort suggestions and accepts one into the list", async () => {
+    const user = userEvent.setup();
+    renderApp(
+      createRepository([makeTask({ id: "today-task", inToday: true })]),
+      undefined,
+      {
+        energyRepository: createEnergyRepository(),
+        comfortRepository: createComfortRepository(),
+      },
+    );
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    await user.click(screen.getByRole("button", { name: "照顾自己" }));
+    await user.click(screen.getByRole("button", { name: "生成候选" }));
+
+    const addButtons = await screen.findAllByRole("button", { name: "加入清单" });
+    expect(addButtons).toHaveLength(3);
+
+    await user.click(addButtons[0]!);
+
+    expect(screen.getAllByRole("button", { name: "加入清单" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^删除 / })).toHaveLength(1);
+    expect(screen.queryByText("清单还是空的，先写下一条能让自己缓一缓的小事。")).not.toBeInTheDocument();
+  });
+
   it("tracks time on the original task and stops when switching tasks", async () => {
     const tasks = [
       makeTask({ id: "task-a", title: "任务 A", inToday: true }),

@@ -89,6 +89,7 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 照顾清单增删、采纳记录、完成状态、备注和低电量随机抽取。
 - 状态与照顾模块开关的显示与隐藏，以及关闭后的数据保留。
 - 庆祝音效的合成、上下文复用、音频不可用时静默，以及完成态的触发与设置开关。
+- comfort 建议生成的批量大小、去重、低电量只给低成本条目。
 
 #### 数据存储
 
@@ -148,6 +149,7 @@ src/
     timer.ts
     energy.ts
     comfort.ts
+    comfortSuggestion.ts
   storage/
     TaskRepository.ts
     TaskRepositoryContext.tsx
@@ -192,7 +194,7 @@ src/
 | `TodayPanel.tsx` | 今日重点面板 | 展示今日状态、今日任务与已采纳的照顾条目，选择任务、移出今日 | `EnergySelector`、`ComfortCard`、`TaskCard`、任务与 comfort 领域函数 |
 | `EnergySelector.tsx` | 受控交互组件 | 展示并提交今日状态，提供照顾清单入口 | `energy` 领域模块 |
 | `ComfortCard.tsx` | 展示卡片 | 采纳后的照顾条目只提供备注输入和完成按钮 | `ComfortEntry`、`ComfortItem` |
-| `CarePanel.tsx` | 照顾清单页 | 编写清单、按低电量状态随机抽取并采纳条目 | `comfort` 领域函数 |
+| `CarePanel.tsx` | 照顾清单页 | 编写清单、生成候选、按低电量状态随机抽取并采纳条目 | `comfort`、`comfortSuggestion` 领域函数 |
 | `TaskDetailPanel.tsx` | 当前任务操作面板 | 组合下一步建议、可选标签、计时器和状态选择器 | `TagSelector`、`TimerControl`、`StatusSelector` |
 | `TaskCard.tsx` | 任务展示卡片 | 主体点击进入详情，展示状态、下一步、循环、累计时间和最多三列操作按钮 | 循环/标签/计时格式化、`Task` 类型 |
 | `TimerControl.tsx` | 有状态交互组件 | 管理倒计时/正计时会话、控制运行状态、上报执行秒数 | `task`、`timer` 领域模块 |
@@ -211,6 +213,7 @@ src/
 | `audio/celebration.ts` | 基础设施 | 用 WebAudio 合成短庆祝音，缺少音频能力时静默降级 | 无 React、无存储 |
 | `domain/energy.ts` | 领域模型 | 今日状态事件、校验、迁移、创建和查询 | `calendar` |
 | `domain/comfort.ts` | 领域模型 | 照顾条目、采纳记录、完成、随机抽取 | `calendar` |
+| `domain/comfortSuggestion.ts` | 领域服务 | 可替换的 comfort 建议 provider 与本地模板实现 | `comfort`、`energy` |
 | `domain/repeat.ts` | 循环领域逻辑 | 循环模式类型、迁移和展示文案 | 无 React、无存储 |
 | `domain/calendar.ts` | 日历领域逻辑 | 本地日期键、月份网格和日期文案 | 无 React、无存储 |
 | `domain/nextStep.ts` | 领域逻辑 | 根据任务标题生成和轮换下一步建议 | 无 React、无存储 |
@@ -490,6 +493,8 @@ type UserSettings = {
 
 照顾清单页支持编写、删除条目，并在今日状态为低电量时随机抽取一条供用户采纳。抽取优先选择 `effort` 为轻的条目，并避开最近用过的条目。采纳会创建当天的 `ComfortEntry`，回到今日页后以黄色 comfort 卡片展示，只提供备注输入和完成按钮。
 
+照顾清单页还提供生成候选入口，一次给出 3 条建议，用户确认后才写入清单，已存在的条目不重复生成。当前由 `LocalComfortSuggestionProvider` 用本地模板实现，接口为 `ComfortSuggestionProvider`，后续接入真实 AI 时替换实现即可。
+
 设置中的 `energyEnabled` 控制该模块是否展示。关闭后状态选择、照顾入口和今日的 comfort 卡片一并隐藏，但状态记录、清单和采纳记录都保留。
 
 ## 开发与验证命令
@@ -519,7 +524,7 @@ npm run preview
 
 ### 产品化基础
 
-- 接入真实 AI 生成下一步建议。
+- 接入真实 AI 生成下一步建议和 comfort 建议，替换本地模板 provider。
 - 引入 Supabase Auth 和 Postgres。
 - 将标签、任务标签关联和个性化设置纳入云端数据模型。
 - 使用可幂等的 `task_time_entries` 记录计时会话，并基于标签生成服务端统计。

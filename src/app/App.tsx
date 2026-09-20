@@ -20,6 +20,7 @@ import {
   type ComfortEntry,
   type ComfortItem,
 } from "../domain/comfort";
+import { LocalComfortSuggestionProvider } from "../domain/comfortSuggestion";
 import {
   createEnergyRecord,
   getEnergyStateForDate,
@@ -49,6 +50,8 @@ import { useTagRepository } from "../storage/TagRepositoryContext";
 import { useTaskRepository } from "../storage/TaskRepositoryContext";
 
 type ActiveTab = "inbox" | "today" | "settings";
+
+const comfortSuggestionProvider = new LocalComfortSuggestionProvider();
 type TaskModal = { type: "repeat" | "tags"; taskId: string } | null;
 
 const tabDefinitions: Array<{ id: ActiveTab; label: string; index: string }> = [
@@ -319,8 +322,11 @@ export default function App() {
     ]);
   }
 
-  function handleCreateComfortItem(title: string, effort: ComfortEffort) {
-    setComfortItems((currentItems) => [...currentItems, createComfortItem(title, { effort })]);
+  function handleCreateComfortItem(title: string, effort: ComfortEffort, howTo?: string) {
+    setComfortItems((currentItems) => [
+      ...currentItems,
+      createComfortItem(title, { effort, howTo }),
+    ]);
   }
 
   function handleDeleteComfortItem(itemId: string) {
@@ -431,6 +437,7 @@ export default function App() {
               items={comfortItems}
               energyState={todayEnergyState}
               recentItemIds={getRecentComfortItemIds(comfortEntries, 3)}
+              suggestionProvider={comfortSuggestionProvider}
               onAdopt={handleAdoptComfortItem}
               onCreateItem={handleCreateComfortItem}
               onDeleteItem={handleDeleteComfortItem}

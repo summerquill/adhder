@@ -1288,3 +1288,37 @@ button.care-entry:hover {
   padding: 0 14px;
   font-size: 12px;
 }
+
+.care-suggest {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.care-suggest .mini-head {
+  margin-bottom: 0;
+}
+
+.care-suggestion-list {
+  display: grid;
+  gap: 8px;
+}
+
+.care-suggestion {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+}
+
+.care-suggestion button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+}

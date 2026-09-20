@@ -7,14 +7,16 @@ import {
   type ComfortEffort,
   type ComfortItem,
 } from "../domain/comfort";
+import type { ComfortSuggestion, ComfortSuggestionProvider } from "../domain/comfortSuggestion";
 import type { EnergyState } from "../domain/energy";
 
 type CarePanelProps = {
   items: readonly ComfortItem[];
   energyState: EnergyState | null;
   recentItemIds: readonly string[];
+  suggestionProvider: ComfortSuggestionProvider;
   onAdopt: (itemId: string) => void;
-  onCreateItem: (title: string, effort: ComfortEffort) => void;
+  onCreateItem: (title: string, effort: ComfortEffort, howTo?: string) => void;
   onDeleteItem: (itemId: string) => void;
 };
 
@@ -22,6 +24,7 @@ export function CarePanel({
   items,
   energyState,
   recentItemIds,
+  suggestionProvider,
   onAdopt,
   onCreateItem,
   onDeleteItem,
@@ -29,6 +32,8 @@ export function CarePanel({
   const [title, setTitle] = useState("");
   const [effort, setEffort] = useState<ComfortEffort>("medium");
   const [pickedItemId, setPickedItemId] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<ComfortSuggestion[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const canPick = energyState === "low";
   const pickedItem = items.find((item) => item.id === pickedItemId) ?? null;
@@ -49,6 +54,27 @@ export function CarePanel({
       pickComfortItem(items, { excludeItemIds });
 
     setPickedItemId(next?.id ?? null);
+  }
+
+  async function handleSuggest() {
+    setIsSuggesting(true);
+
+    try {
+      const next = await suggestionProvider.suggest({
+        energyState,
+        existingTitles: items.map((item) => item.title),
+      });
+      setSuggestions(next);
+    } finally {
+      setIsSuggesting(false);
+    }
+  }
+
+  function handleAcceptSuggestion(suggestion: ComfortSuggestion) {
+    onCreateItem(suggestion.title, suggestion.effort, suggestion.howTo);
+    setSuggestions((current) =>
+      current.filter((item) => item.title !== suggestion.title),
+    );
   }
 
   return (
@@ -91,6 +117,42 @@ export function CarePanel({
               </button>
             </div>
           </article>
+        ) : null}
+      </section>
+
+      <section className="care-suggest" aria-labelledby="careSuggestTitle">
+        <div className="mini-head">
+          <h3 id="careSuggestTitle">AI 生成</h3>
+          <button
+            className="secondary"
+            type="button"
+            disabled={isSuggesting}
+            onClick={() => void handleSuggest()}
+          >
+            {suggestions.length > 0 ? "换一批" : "生成候选"}
+          </button>
+        </div>
+        <p className="care-hint">先生成几条候选，觉得合适再放进清单。</p>
+
+        {suggestions.length > 0 ? (
+          <div className="care-suggestion-list" aria-live="polite">
+            {suggestions.map((suggestion) => (
+              <article className="care-suggestion" key={suggestion.title}>
+                <div className="comfort-item-main">
+                  <span className="comfort-title">{suggestion.title}</span>
+                  <span className="comfort-effort">
+                    成本 · {comfortEffortLabels[suggestion.effort]}
+                  </span>
+                  {suggestion.howTo ? (
+                    <span className="comfort-how">具体一点：{suggestion.howTo}</span>
+                  ) : null}
+                </div>
+                <button type="button" onClick={() => handleAcceptSuggestion(suggestion)}>
+                  加入清单
+                </button>
+              </article>
+            ))}
+          </div>
         ) : null}
       </section>
 
