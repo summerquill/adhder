@@ -75,7 +75,8 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 多层标签创建、路径解析、任务多标签关联和级联删除。
 - 标签功能默认关闭，开启后显示设置页、任务标签和时间统计。
 - 父标签时间聚合与同一分支去重。
-- 四 Tab 移动端导航和长列表内部滚动。
+- 三 Tab 底部导航、任务详情页返回和长列表内部滚动。
+- Inbox 循环模式弹窗、标签快捷选择和对应持久化。
 - 下一步建议区域可配置显示或隐藏。
 - 最多 3 个、支持 1～180 分钟的倒计时快捷选项。
 - `localStorage` 读写和异常数据回退。
@@ -90,7 +91,7 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 后续可以新增 Supabase 实现，而不需要让组件感知存储来源。
 - 任务存储键继续使用 `adhder.tasks.v1` 和 `adhder.selectedTaskId.v1`。
 - 标签和设置使用 `adhder.tags.v1` 和 `adhder.settings.v1`。
-- 旧任务缺少 `tagIds` 或 `timeSpentSeconds` 时分别补为 `[]` 和 `0`。
+- 旧任务缺少 `tagIds`、`repeatMode` 或 `timeSpentSeconds` 时分别补为 `[]`、`none` 和 `0`。
 - `id` 以 `seed-` 开头的历史 Mock 任务会被过滤。
 
 后续在需要账号、多设备同步或云端备份时再引入后端，优先评估 Supabase。正式同步计时时间时，应使用可幂等的计时记录，而不是直接覆盖累计秒数。
@@ -113,7 +114,9 @@ src/
     TimerControl.tsx
     StatusSelector.tsx
     TaskCard.tsx
+    RepeatModeModal.tsx
     SettingsPage.tsx
+    TagSelectionModal.tsx
     TimerPresetSettings.tsx
     TagManager.tsx
     TagSelector.tsx
@@ -122,6 +125,7 @@ src/
     task.ts
     tag.ts
     tagStats.ts
+    repeat.ts
     nextStep.ts
     timer.ts
   storage/
@@ -157,21 +161,24 @@ src/
 | 组件 | 类型 | 主要职责 | 直接依赖 |
 | --- | --- | --- | --- |
 | `main.tsx` | 启动入口 | 挂载 React、注入任务和标签 Repository、加载全局样式 | React、两个 Repository Provider 和本地实现 |
-| `App.tsx` | 状态容器与应用编排 | 加载任务/标签快照、管理选中任务和四个 Tab、协调设置与持久化 | 业务面板、设置页、领域逻辑、两个 Repository Context |
+| `App.tsx` | 状态容器与应用编排 | 加载任务/标签快照、管理三个 Tab、任务详情页和弹窗、协调设置与持久化 | 业务面板、设置页、弹窗、领域逻辑、两个 Repository Context |
 | `InboxPanel.tsx` | 输入与 Inbox 面板 | 创建任务、展示全部任务、选择任务、加入今日 | `TaskCard`、`Task` 类型 |
 | `TodayPanel.tsx` | 今日重点面板 | 展示今日任务、选择任务、移出今日 | `TaskCard`、任务领域函数 |
 | `TaskDetailPanel.tsx` | 当前任务操作面板 | 组合下一步建议、可选标签、计时器和状态选择器 | `TagSelector`、`TimerControl`、`StatusSelector` |
-| `TaskCard.tsx` | 任务展示卡片 | 展示标题、状态、下一步、累计时间和操作按钮 | 计时格式化、`Task` 类型 |
+| `TaskCard.tsx` | 任务展示卡片 | 展示标题、状态、下一步、循环、累计时间和操作按钮 | 循环/计时格式化、`Task` 类型 |
 | `TimerControl.tsx` | 有状态交互组件 | 管理倒计时/正计时会话、控制运行状态、上报执行秒数 | `task`、`timer` 领域模块 |
 | `StatusSelector.tsx` | 受控交互组件 | 展示并提交四种任务状态 | `statuses`、`Task` 类型 |
 | `SettingsPage.tsx` | 个性化设置页 | 控制标签和下一步建议开关，组合倒计时、标签管理和时间统计 | `TimerPresetSettings`、`TagManager`、`TagTimeStats` |
 | `TimerPresetSettings.tsx` | 倒计时设置 | 添加、删除并限制最多 3 个自定义倒计时 | `UserSettings` |
+| `RepeatModeModal.tsx` | 循环设置弹窗 | 设置任务的循环规则 | `repeat`、`Task` |
+| `TagSelectionModal.tsx` | 标签选择弹窗 | 在 Inbox 为任务快速添加或移除多个标签 | `tag`、`Task` |
 | `TagManager.tsx` | 标签管理 | 创建任意层级标签、展示层级和删除标签树 | `Tag` 领域函数 |
 | `TagSelector.tsx` | 可选任务标签控件 | 为当前任务添加和移除多个标签 | `Tag` 领域函数 |
 | `TagTimeStats.tsx` | 标签统计 | 展示直接时间和包含子标签的去重总时间 | `tagStats`、`timer` |
 | `domain/task.ts` | 领域模型 | 任务类型、状态、校验、迁移、创建、更新、标签关联和时间累计 | `nextStep` |
 | `domain/tag.ts` | 标签领域模型 | 标签层级、路径、后代、排序、创建和设置迁移 | 无 React、无存储 |
 | `domain/tagStats.ts` | 统计领域逻辑 | 按标签层级聚合任务去重后的执行时间 | `tag`、`task` |
+| `domain/repeat.ts` | 循环领域逻辑 | 循环模式类型、迁移和展示文案 | 无 React、无存储 |
 | `domain/nextStep.ts` | 领域逻辑 | 根据任务标题生成和轮换下一步建议 | 无 React、无存储 |
 | `domain/timer.ts` | 领域逻辑 | 计时模式类型和时长格式化 | 无 React、无存储 |
 | `storage/TaskRepository.ts` | 存储接口 | 定义加载快照、保存任务和保存选中任务的操作 | `Task` 类型 |
@@ -251,6 +258,7 @@ type Task = {
   nextStep: string;
   inToday: boolean;
   tagIds: string[];
+  repeatMode: "none" | "daily" | "weekdays" | "weekly";
   timeSpentSeconds: number;
   createdAt: string;
   updatedAt: string;
@@ -306,7 +314,11 @@ type UserSettings = {
 
 ### Tab 导航与移动端界面
 
-主界面使用四个底部 Tab：快速 Inbox、今日 3 件事、开始一个小动作、设置。Inbox 和今日列表使用独立滚动容器；任务详情、设置和标签信息只在对应 Tab 中展示，降低首屏信息负载。
+主界面使用三个底部 Tab：快速 Inbox、今日 3 件事、设置。“开始一个小动作”改为任务详情页，由 Inbox 或今日列表的“查看”操作进入，并通过返回按钮退出。Inbox 和今日列表使用独立滚动容器，降低首屏信息负载。
+
+### 循环模式与 Inbox 快捷操作
+
+快速 Inbox 任务卡提供“循环”和可选的“标签”按钮。循环设置通过弹窗选择不循环、每天、工作日或每周，并保存为 `repeatMode`。标签开启后，标签弹窗允许直接修改当前任务的标签集合。
 
 ### 倒计时选项
 
