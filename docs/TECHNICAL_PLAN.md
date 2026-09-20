@@ -255,6 +255,91 @@ main.tsx
 
 满足其中任意两项后，建议新建 `docs/SYSTEM_DESIGN.md`，重点描述服务边界、数据模型、同步协议、安全、可观测性和失败模式；本技术方案继续保留技术栈、开发命令和阶段规划。
 
+## 模块化与功能开关约定
+
+产品允许持续增加可关闭模块，技术实现必须保证模块之间互不影响。本节约束后续所有模块（用户状态、comfort 等）的实现方式。
+
+### 三层开关语义
+
+`UserSettings` 中的开关必须明确属于以下一种，并在命名上区分：
+
+| 语义 | 命名示例 | 关闭后的行为 | 数据 |
+| --- | --- | --- | --- |
+| 隐藏界面 | `xxxEnabled` | 不渲染入口和内容 | 保留 |
+| 关闭行为 | `xxxSoundEnabled` | 不触发副作用 | 保留 |
+| 退出派生计算 | `xxxStatsEnabled` | 不进入统计或曲线 | 保留 |
+
+约定：
+
+- 数据一律保留，开关不得删除用户数据。
+- 开关只影响展示与派生计算，不改变核心任务流程。
+- `normalizeUserSettings` 为每个新开关提供默认值，老数据缺少字段时不能报错。
+
+### 正交性
+
+- 每个开关只能改变自己模块的展示、数据与计算。
+- 禁止模块 A 的开关影响模块 B 的渲染或统计。
+- 新增开关时必须补充“开关组合”测试，而不是只测全开和全关。
+
+### 事件记录优先于可变状态
+
+后续会引入每日状态曲线，因此与用户状态相关的数据必须从第一天起就按事件记录存储，而不是只保存一个可被覆盖的当前值：
+
+```ts
+type EnergyRecord = {
+  id: string;
+  dateKey: string;
+  state: "full" | "holding" | "low";
+  changedAt: string;
+  reason?: string;
+  note?: string;
+};
+```
+
+当日界面只读取当天最后一条记录；状态曲线等派生视图直接对同一批记录聚合，不需要迁移历史数据。
+
+comfort 同样分成清单与采纳记录两层：
+
+```ts
+type ComfortItem = {
+  id: string;
+  title: string;
+  howTo?: string;
+  effort?: "low" | "medium" | "high";
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ComfortEntry = {
+  id: string;
+  itemId: string;
+  dateKey: string;
+  note?: string;
+  mediaRefs?: string[];
+  completedAt: string;
+};
+```
+
+`ComfortItem` 可重复使用，`ComfortEntry` 表示某一天的一次采纳或完成，避免与循环任务共享同一记录时出现的完成状态问题。
+
+### Repository 扩展方式
+
+- 新模块沿用现有模式：定义接口、提供 Context Provider、实现 `LocalXxxRepository`，并由 `main.tsx` 注入。
+- App 与组件不直接访问 `localStorage`，也不直接创建具体实现。
+- 存储键继续使用 `adhder.xxx.v1` 命名，并保证旧数据缺失时回退到默认值。
+- 新增模块的模型校验、迁移和异常回退必须有对应测试。
+
+### 富媒体存储约束
+
+- `localStorage` 不适合保存图片，容量有限且读写同步阻塞。
+- 照片等媒体走 IndexedDB / Blob，并抽象为 `MediaRepository`，未来可替换为对象存储。
+- 数据模型先保留 `mediaRefs: string[]` 字段，界面可后续再实现。
+
+### 派生数据
+
+- 曲线、统计等派生结果一律从事件记录实时计算，不额外落库冗余状态。
+- 模块关闭后不得进入派生计算，但仍保留原始记录。
+
 ## 核心数据模型
 
 ```ts
@@ -386,6 +471,7 @@ npm run preview
 - `npm test` 通过。
 - `npm run build` 通过。
 - 数据迁移或存储结构发生变化时，必须同步增加兼容性测试。
+- 新增可关闭模块时，必须补充开关正交性测试和 `UserSettings` 迁移测试。
 
 ## 后续演进
 
@@ -398,11 +484,14 @@ npm run preview
 - 支持云端同步和数据迁移。
 - 增加 PWA 离线支持和通知提醒。
 - 根据设计系统成熟度评估 Tailwind CSS。
+- 按事件记录实现用户状态与 comfort 模块，状态曲线从同一批记录派生，不额外落库冗余状态。
 
 ### 暂不做
 
 - 复杂日历。
 - 项目管理功能。
-- 情绪复盘和自我觉察。
+- 情绪分析、心理建议和诊断。
 - 统计仪表盘。
 - 社交监督和协作功能。
+
+用户状态曲线和 comfort 模块不在“暂不做”范围内，但按「模块化与功能开关约定」作为可关闭模块逐步引入。
