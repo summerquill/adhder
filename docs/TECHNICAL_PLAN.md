@@ -130,6 +130,75 @@ src/
 - `styles/`：保存全局样式和后续设计系统入口。
 - `test/`：测试环境和公共初始化。
 
+## 轻量系统设计
+
+当前产品仍是单端、本地优先的 Web App，不需要复杂的微服务设计。但 React 组件、领域逻辑和存储实现已经形成边界，因此现在适合维护一份轻量系统设计，记录组件职责和依赖方向。
+
+### 组件清单
+
+| 组件 | 类型 | 主要职责 | 直接依赖 |
+| --- | --- | --- | --- |
+| `main.tsx` | 启动入口 | 挂载 React、注入 Repository、加载全局样式 | React、`TaskRepositoryProvider`、`LocalTaskRepository` |
+| `App.tsx` | 状态容器与应用编排 | 加载任务快照、管理选中任务、协调用户操作和持久化 | 三个业务面板、领域逻辑、Repository Context |
+| `InboxPanel.tsx` | 输入与 Inbox 面板 | 创建任务、展示全部任务、选择任务、加入今日 | `TaskCard`、`Task` 类型 |
+| `TodayPanel.tsx` | 今日重点面板 | 展示今日任务、选择任务、移出今日 | `TaskCard`、任务领域函数 |
+| `TaskDetailPanel.tsx` | 当前任务操作面板 | 组合下一步建议、计时器和状态选择器 | `TimerControl`、`StatusSelector` |
+| `TaskCard.tsx` | 任务展示卡片 | 展示标题、状态、下一步、累计时间和操作按钮 | 计时格式化、`Task` 类型 |
+| `TimerControl.tsx` | 有状态交互组件 | 管理倒计时/正计时会话、控制运行状态、上报执行秒数 | `task`、`timer` 领域模块 |
+| `StatusSelector.tsx` | 受控交互组件 | 展示并提交四种任务状态 | `statuses`、`Task` 类型 |
+| `domain/task.ts` | 领域模型 | 任务类型、状态、校验、迁移、创建、更新和时间累计 | `nextStep` |
+| `domain/nextStep.ts` | 领域逻辑 | 根据任务标题生成和轮换下一步建议 | 无 React、无存储 |
+| `domain/timer.ts` | 领域逻辑 | 计时模式类型和时长格式化 | 无 React、无存储 |
+| `storage/TaskRepository.ts` | 存储接口 | 定义加载快照、保存任务和保存选中任务的操作 | `Task` 类型 |
+| `storage/TaskRepositoryContext.tsx` | 依赖注入边界 | 向 React 组件提供 Repository，不暴露具体实现 | `TaskRepository` |
+| `storage/localTaskRepository.ts` | 基础设施实现 | 使用 `localStorage`、清理 Mock、迁移旧数据和回退异常 | Task 领域模型 |
+| `test/` | 测试支持 | 测试环境、公共任务 Fixture 和初始化逻辑 | 不进入生产代码 |
+
+### 依赖方向
+
+```text
+main.tsx
+  └─ TaskRepositoryProvider
+       ├─ LocalTaskRepository ──> localStorage
+       └─ App
+            ├─ InboxPanel ─────> TaskCard
+            ├─ TodayPanel ─────> TaskCard
+            ├─ TaskDetailPanel
+            │    ├─ TimerControl ──> domain/timer
+            │    └─ StatusSelector
+            ├─ domain/task
+            ├─ domain/nextStep
+            └─ TaskRepository 接口
+```
+
+未来接入 Supabase 时，新增 `SupabaseTaskRepository` 并替换 Provider 注入即可，不需要让面板组件知道数据来自本地还是云端。
+
+### 数据流
+
+1. **启动**：`main` 注入 `LocalTaskRepository`，`App` 调用 `load()`，得到 `TaskSnapshot` 后进入可交互状态。
+2. **任务操作**：面板通过 props 触发 `App` 操作，`App` 更新 React 状态，再由 effect 调用 Repository 持久化。
+3. **计时**：`TimerControl` 每秒上报一次 `taskId` 和新增秒数，`App` 通过 `addTimeSpent` 更新对应任务，随后由 Repository 保存。
+4. **未来云端同步**：Repository 负责本地与远端协调，UI 和领域组件仍只处理 `Task`，不直接处理网络请求。
+
+### 边界原则
+
+- 组件不直接导入 `localStorage`，也不创建具体 Repository。
+- 领域模块不依赖 React、浏览器存储或网络。
+- Repository 不负责界面状态，只负责数据读取、写入和迁移。
+- `App` 负责当前编排，不承载新的基础设施细节；如果继续增长，再提取 `useTaskState`、`useTaskTimer` 或应用服务层。
+
+### 何时拆分独立 System Design
+
+在以下条件出现前，保持“技术方案中的一个轻量章节”即可：
+
+- 引入 Supabase Auth、Postgres、云同步或离线队列。
+- 出现多个客户端或前后端独立部署。
+- 需要定义同步冲突、幂等、重试、权限和故障恢复。
+- 引入第三方 AI、支付、通知或后台任务。
+- 团队超过一名持续维护开发人员并需要独立评审架构。
+
+满足其中任意两项后，建议新建 `docs/SYSTEM_DESIGN.md`，重点描述服务边界、数据模型、同步协议、安全、可观测性和失败模式；本技术方案继续保留技术栈、开发命令和阶段规划。
+
 ## 核心数据模型
 
 ```ts
