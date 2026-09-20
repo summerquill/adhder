@@ -77,6 +77,8 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 父标签时间聚合与同一分支去重。
 - 三 Tab 底部导航、任务详情页返回和长列表内部滚动。
 - Inbox 循环模式弹窗、标签快捷选择和对应持久化。
+- 任务卡主体直接打开详情、固定三列操作区和标签按钮名称展示。
+- `plannedDate` 日计划归属、跨天收起和月历状态查看。
 - 下一步建议区域可配置显示或隐藏。
 - 最多 3 个、支持 1～180 分钟的倒计时快捷选项。
 - `localStorage` 读写和异常数据回退。
@@ -91,7 +93,7 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 后续可以新增 Supabase 实现，而不需要让组件感知存储来源。
 - 任务存储键继续使用 `adhder.tasks.v1` 和 `adhder.selectedTaskId.v1`。
 - 标签和设置使用 `adhder.tags.v1` 和 `adhder.settings.v1`。
-- 旧任务缺少 `tagIds`、`repeatMode` 或 `timeSpentSeconds` 时分别补为 `[]`、`none` 和 `0`。
+- 旧任务缺少 `plannedDate`、`tagIds`、`repeatMode` 或 `timeSpentSeconds` 时分别按当天/空值、`[]`、`none` 和 `0` 迁移。
 - `id` 以 `seed-` 开头的历史 Mock 任务会被过滤。
 
 后续在需要账号、多设备同步或云端备份时再引入后端，优先评估 Supabase。正式同步计时时间时，应使用可幂等的计时记录，而不是直接覆盖累计秒数。
@@ -114,6 +116,7 @@ src/
     TimerControl.tsx
     StatusSelector.tsx
     TaskCard.tsx
+    DayPlanModal.tsx
     RepeatModeModal.tsx
     SettingsPage.tsx
     TagSelectionModal.tsx
@@ -123,6 +126,7 @@ src/
     TagTimeStats.tsx
   domain/
     task.ts
+    calendar.ts
     tag.ts
     tagStats.ts
     repeat.ts
@@ -165,13 +169,14 @@ src/
 | `InboxPanel.tsx` | 输入与 Inbox 面板 | 创建任务、展示全部任务、选择任务、加入今日 | `TaskCard`、`Task` 类型 |
 | `TodayPanel.tsx` | 今日重点面板 | 展示今日任务、选择任务、移出今日 | `TaskCard`、任务领域函数 |
 | `TaskDetailPanel.tsx` | 当前任务操作面板 | 组合下一步建议、可选标签、计时器和状态选择器 | `TagSelector`、`TimerControl`、`StatusSelector` |
-| `TaskCard.tsx` | 任务展示卡片 | 展示标题、状态、下一步、循环、累计时间和操作按钮 | 循环/计时格式化、`Task` 类型 |
+| `TaskCard.tsx` | 任务展示卡片 | 主体点击进入详情，展示状态、下一步、循环、累计时间和最多三列操作按钮 | 循环/标签/计时格式化、`Task` 类型 |
 | `TimerControl.tsx` | 有状态交互组件 | 管理倒计时/正计时会话、控制运行状态、上报执行秒数 | `task`、`timer` 领域模块 |
 | `StatusSelector.tsx` | 受控交互组件 | 展示并提交四种任务状态 | `statuses`、`Task` 类型 |
 | `SettingsPage.tsx` | 个性化设置页 | 控制标签和下一步建议开关，组合倒计时、标签管理和时间统计 | `TimerPresetSettings`、`TagManager`、`TagTimeStats` |
 | `TimerPresetSettings.tsx` | 倒计时设置 | 添加、删除并限制最多 3 个自定义倒计时 | `UserSettings` |
 | `RepeatModeModal.tsx` | 循环设置弹窗 | 设置任务的循环规则 | `repeat`、`Task` |
 | `TagSelectionModal.tsx` | 标签选择弹窗 | 在 Inbox 为任务快速添加或移除多个标签 | `tag`、`Task` |
+| `DayPlanModal.tsx` | 日计划弹窗 | 按月选择日期并查看当天任务状态 | `calendar`、`Task` |
 | `TagManager.tsx` | 标签管理 | 创建任意层级标签、展示层级和删除标签树 | `Tag` 领域函数 |
 | `TagSelector.tsx` | 可选任务标签控件 | 为当前任务添加和移除多个标签 | `Tag` 领域函数 |
 | `TagTimeStats.tsx` | 标签统计 | 展示直接时间和包含子标签的去重总时间 | `tagStats`、`timer` |
@@ -179,6 +184,7 @@ src/
 | `domain/tag.ts` | 标签领域模型 | 标签层级、路径、后代、排序、创建和设置迁移 | 无 React、无存储 |
 | `domain/tagStats.ts` | 统计领域逻辑 | 按标签层级聚合任务去重后的执行时间 | `tag`、`task` |
 | `domain/repeat.ts` | 循环领域逻辑 | 循环模式类型、迁移和展示文案 | 无 React、无存储 |
+| `domain/calendar.ts` | 日历领域逻辑 | 本地日期键、月份网格和日期文案 | 无 React、无存储 |
 | `domain/nextStep.ts` | 领域逻辑 | 根据任务标题生成和轮换下一步建议 | 无 React、无存储 |
 | `domain/timer.ts` | 领域逻辑 | 计时模式类型和时长格式化 | 无 React、无存储 |
 | `storage/TaskRepository.ts` | 存储接口 | 定义加载快照、保存任务和保存选中任务的操作 | `Task` 类型 |
@@ -257,6 +263,7 @@ type Task = {
   status: TaskStatus;
   nextStep: string;
   inToday: boolean;
+  plannedDate: string | null;
   tagIds: string[];
   repeatMode: "none" | "daily" | "weekdays" | "weekly";
   timeSpentSeconds: number;
@@ -314,7 +321,13 @@ type UserSettings = {
 
 ### Tab 导航与移动端界面
 
-主界面使用三个底部 Tab：快速 Inbox、今日 3 件事、设置。“开始一个小动作”改为任务详情页，由 Inbox 或今日列表的“查看”操作进入，并通过返回按钮退出。Inbox 和今日列表使用独立滚动容器，降低首屏信息负载。
+主界面使用三个底部 Tab：快速 Inbox、今日 3 件事、设置。“开始一个小动作”改为任务详情页，由 Inbox 或今日列表点击任务卡主体进入，并通过返回按钮退出。Inbox 和今日列表使用独立滚动容器，降低首屏信息负载。
+
+### 任务卡与日计划
+
+任务卡主体是可访问的详情入口，操作按钮独立于详情点击，固定最多三列。今日列表与 Inbox 复用同一个 `TaskCard`。
+
+任务加入今日时写入本地日期 `plannedDate`。应用启动时，如果 `inToday` 任务的 `plannedDate` 不是当天，自动将 `inToday` 收起但保留历史日期。今日页的 `DayPlanModal` 按月展示日期网格，并按 `plannedDate` 查询所选日期的任务和状态。
 
 ### 循环模式与 Inbox 快捷操作
 
