@@ -88,6 +88,7 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 今日状态事件记录、按天取最新状态和异常数据回退。
 - 照顾清单增删、采纳记录、完成状态、备注和低电量随机抽取。
 - 状态与照顾模块开关的显示与隐藏，以及关闭后的数据保留。
+- 庆祝音效的合成、上下文复用、音频不可用时静默，以及完成态的触发与设置开关。
 
 #### 数据存储
 
@@ -135,6 +136,8 @@ src/
     TagManager.tsx
     TagSelector.tsx
     TagTimeStats.tsx
+  audio/
+    celebration.ts
   domain/
     task.ts
     calendar.ts
@@ -205,6 +208,7 @@ src/
 | `domain/task.ts` | 领域模型 | 任务类型、状态、校验、迁移、创建、更新、标签关联和时间累计 | `nextStep` |
 | `domain/tag.ts` | 标签领域模型 | 标签层级、路径、后代、排序、创建和设置迁移 | 无 React、无存储 |
 | `domain/tagStats.ts` | 统计领域逻辑 | 按标签层级聚合任务去重后的执行时间 | `tag`、`task` |
+| `audio/celebration.ts` | 基础设施 | 用 WebAudio 合成短庆祝音，缺少音频能力时静默降级 | 无 React、无存储 |
 | `domain/energy.ts` | 领域模型 | 今日状态事件、校验、迁移、创建和查询 | `calendar` |
 | `domain/comfort.ts` | 领域模型 | 照顾条目、采纳记录、完成、随机抽取 | `calendar` |
 | `domain/repeat.ts` | 循环领域逻辑 | 循环模式类型、迁移和展示文案 | 无 React、无存储 |
@@ -397,6 +401,8 @@ type UserSettings = {
   tagsEnabled: boolean;
   nextStepEnabled: boolean;
   countdownPresets: number[];
+  energyEnabled: boolean;
+  celebrationSoundEnabled: boolean;
 };
 ```
 
@@ -471,6 +477,12 @@ type UserSettings = {
 ### 任务状态
 
 每个任务支持四种状态。状态变化会立即更新 React 状态并通过 `TaskRepository` 持久化。
+
+### 完成庆祝音效
+
+`audio/celebration.ts` 用 WebAudio 合成三个音符的短音效，不依赖音频文件。任务状态进入「完成」或照顾条目完成时由 `App` 触发，并且只在从未完成进入完成态时播放一次。
+
+设置中的 `celebrationSoundEnabled` 默认开启，并提供试听。关闭后 `App` 不再触发音效。浏览器缺少 WebAudio 或被自动播放策略阻止时静默失败，不影响完成流程。
 
 ### 今日状态与照顾清单
 

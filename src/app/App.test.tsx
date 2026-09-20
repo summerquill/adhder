@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { playCelebration } from "../audio/celebration";
+
 import { getLocalDateKey } from "../domain/calendar";
 import type { ComfortEntry, ComfortItem } from "../domain/comfort";
 import type { EnergyRecord } from "../domain/energy";
@@ -24,6 +26,10 @@ import {
   TASK_STORAGE_KEY,
 } from "../storage/localTaskRepository";
 import App from "./App";
+
+vi.mock("../audio/celebration", () => ({
+  playCelebration: vi.fn(),
+}));
 
 function createRepository(tasks: Task[] = [], selectedTaskId = tasks[0]?.id ?? null): TaskRepository {
   return {
@@ -454,6 +460,63 @@ describe("App", () => {
 
     expect(screen.getByText("把今日状态调成「低电量」后，可以随机抽一个。")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "随机抽一个" })).not.toBeInTheDocument();
+  });
+
+  it("plays the celebration sound only when a task enters the done state", async () => {
+    const user = userEvent.setup();
+    vi.mocked(playCelebration).mockClear();
+    renderApp(createRepository([makeTask({ id: "celebrate", inToday: true })]));
+
+    await user.click(await screen.findByRole("button", { name: /查看任务/ }));
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(playCelebration).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(playCelebration).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "进行中" }));
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(playCelebration).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the celebration sound silent when it is disabled", async () => {
+    const user = userEvent.setup();
+    vi.mocked(playCelebration).mockClear();
+    renderApp(
+      createRepository([makeTask({ id: "quiet", inToday: true })]),
+      createTagRepository([], { ...defaultUserSettings, celebrationSoundEnabled: false }),
+    );
+
+    await user.click(await screen.findByRole("button", { name: /查看任务/ }));
+    await user.click(screen.getByRole("button", { name: "完成" }));
+
+    expect(playCelebration).not.toHaveBeenCalled();
+  });
+
+  it("plays the celebration sound when a comfort card is completed", async () => {
+    const user = userEvent.setup();
+    vi.mocked(playCelebration).mockClear();
+    renderApp(
+      createRepository([makeTask({ id: "today-task", inToday: true })]),
+      undefined,
+      {
+        energyRepository: createEnergyRepository(),
+        comfortRepository: createComfortRepository(),
+      },
+    );
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    await user.click(screen.getByRole("button", { name: "低电量" }));
+    await user.click(screen.getByRole("button", { name: "照顾自己" }));
+    await user.type(screen.getByLabelText("新的照顾条目"), "喝杯热水");
+    await user.click(screen.getByRole("button", { name: "添加条目" }));
+    await user.click(screen.getByRole("button", { name: "随机抽一个" }));
+    await user.click(screen.getByRole("button", { name: "采纳" }));
+
+    vi.mocked(playCelebration).mockClear();
+    await user.click(await screen.findByRole("button", { name: "完成" }));
+
+    expect(playCelebration).toHaveBeenCalledTimes(1);
   });
 
   it("tracks time on the original task and stops when switching tasks", async () => {

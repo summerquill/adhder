@@ -11,6 +11,7 @@ export type UserSettings = {
   nextStepEnabled: boolean;
   countdownPresets: number[];
   energyEnabled: boolean;
+  celebrationSoundEnabled: boolean;
 };
 
 export const defaultCountdownPresets = [5, 10, 15];
@@ -20,6 +21,7 @@ export const defaultUserSettings: UserSettings = {
   nextStepEnabled: true,
   countdownPresets: [...defaultCountdownPresets],
   energyEnabled: true,
+  celebrationSoundEnabled: true,
 };
 
 function createTagId(): string {
@@ -80,6 +82,10 @@ export function normalizeUserSettings(value: unknown): UserSettings {
     nextStepEnabled: typeof settings.nextStepEnabled === "boolean" ? settings.nextStepEnabled : true,
     countdownPresets: normalizeCountdownPresets(settings.countdownPresets),
     energyEnabled: typeof settings.energyEnabled === "boolean" ? settings.energyEnabled : true,
+    celebrationSoundEnabled:
+      typeof settings.celebrationSoundEnabled === "boolean"
+        ? settings.celebrationSoundEnabled
+        : true,
   };
 }
 

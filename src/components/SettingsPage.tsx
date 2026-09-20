@@ -11,6 +11,8 @@ type SettingsPageProps = {
   onToggleTags: (enabled: boolean) => void;
   onToggleNextStep: (enabled: boolean) => void;
   onToggleEnergy: (enabled: boolean) => void;
+  onToggleCelebrationSound: (enabled: boolean) => void;
+  onPreviewCelebration: () => void;
   onCountdownPresetsChange: (presets: number[]) => void;
   onCreateTag: (name: string, parentId: string | null) => void;
   onDeleteTag: (tagId: string) => void;
@@ -23,6 +25,8 @@ export function SettingsPage({
   onToggleTags,
   onToggleNextStep,
   onToggleEnergy,
+  onToggleCelebrationSound,
+  onPreviewCelebration,
   onCountdownPresetsChange,
   onCreateTag,
   onDeleteTag,
@@ -58,6 +62,26 @@ export function SettingsPage({
             onChange={(event) => onToggleEnergy(event.target.checked)}
           />
         </label>
+
+        <label className="settings-toggle">
+          <span>
+            <strong>完成时播放庆祝音效</strong>
+            <small>所有「完成」操作都会播放一段短音效，可以随时关闭。</small>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings.celebrationSoundEnabled}
+            onChange={(event) => onToggleCelebrationSound(event.target.checked)}
+          />
+        </label>
+
+        <div className="settings-inline-action">
+          <span>想先听听看？</span>
+          <button className="secondary" type="button" onClick={onPreviewCelebration}>
+            试听
+          </button>
+        </div>
 
         <label className="settings-toggle">
           <span>

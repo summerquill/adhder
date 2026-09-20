@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { playCelebration } from "../audio/celebration";
 import { CarePanel } from "../components/CarePanel";
 import { InboxPanel } from "../components/InboxPanel";
 import { RepeatModeModal } from "../components/RepeatModeModal";
@@ -248,7 +249,13 @@ export default function App() {
 
   function handleStatusChange(status: TaskStatus) {
     if (!selectedTask) return;
+
+    const isNewCompletion = status === "完成" && selectedTask.status !== "完成";
     patchTask(selectedTask.id, { status });
+
+    if (isNewCompletion && settings.celebrationSoundEnabled) {
+      playCelebration();
+    }
   }
 
   function handleTimeSpent(taskId: string, seconds: number) {
@@ -348,11 +355,17 @@ export default function App() {
   }
 
   function handleCompleteComfortEntry(entryId: string) {
+    const entry = comfortEntries.find((item) => item.id === entryId);
+    if (!entry || entry.completedAt) return;
+
     setComfortEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        entry.id === entryId ? completeComfortEntry(entry) : entry,
+      currentEntries.map((item) =>
+        item.id === entryId ? completeComfortEntry(item) : item,
       ),
     );
+    if (settings.celebrationSoundEnabled) {
+      playCelebration();
+    }
   }
 
   if (!isReady) {
@@ -480,6 +493,10 @@ export default function App() {
               onToggleEnergy={(energyEnabled) =>
                 setSettings((currentSettings) => ({ ...currentSettings, energyEnabled }))
               }
+              onToggleCelebrationSound={(celebrationSoundEnabled) =>
+                setSettings((currentSettings) => ({ ...currentSettings, celebrationSoundEnabled }))
+              }
+              onPreviewCelebration={() => playCelebration()}
               onCountdownPresetsChange={(countdownPresets) =>
                 setSettings((currentSettings) => ({ ...currentSettings, countdownPresets }))
               }
