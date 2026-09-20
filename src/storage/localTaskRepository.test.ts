@@ -38,7 +38,7 @@ describe("LocalTaskRepository", () => {
   it("migrates legacy tasks and ignores invalid or mock data", async () => {
     const repository = new LocalTaskRepository();
     const mockTask = makeTask({ id: "seed-1", title: "Mock 任务" });
-    const { timeSpentSeconds: _timeSpentSeconds, ...legacyTask } = storedTask;
+    const { tagIds: _tagIds, timeSpentSeconds: _timeSpentSeconds, ...legacyTask } = storedTask;
     window.localStorage.setItem(
       TASK_STORAGE_KEY,
       JSON.stringify([{ title: "缺少字段" }, mockTask, legacyTask]),

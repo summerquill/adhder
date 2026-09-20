@@ -10,6 +10,7 @@ export type Task = {
   status: TaskStatus;
   nextStep: string;
   inToday: boolean;
+  tagIds: string[];
   timeSpentSeconds: number;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +32,10 @@ export function normalizeTask(value: unknown): Task | null {
 
   if (!isValid) return null;
 
+  const tagIds = Array.isArray(task.tagIds)
+    ? Array.from(new Set(task.tagIds.filter((tagId): tagId is string => typeof tagId === "string")))
+    : [];
+
   const timeSpentSeconds =
     typeof task.timeSpentSeconds === "number" &&
     Number.isFinite(task.timeSpentSeconds) &&
@@ -44,6 +49,7 @@ export function normalizeTask(value: unknown): Task | null {
     status: task.status as TaskStatus,
     nextStep: task.nextStep as string,
     inToday: task.inToday as boolean,
+    tagIds,
     timeSpentSeconds,
     createdAt: task.createdAt as string,
     updatedAt: task.updatedAt as string,
@@ -75,6 +81,7 @@ export function createTask(title: string): Task {
     status: "未开始",
     inToday: true,
     nextStep: makeNextStep(title),
+    tagIds: [],
     timeSpentSeconds: 0,
     createdAt: now,
     updatedAt: now,

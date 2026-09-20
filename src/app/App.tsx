@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 
 import { InboxPanel } from "../components/InboxPanel";
+import { SettingsPage } from "../components/SettingsPage";
 import { TaskDetailPanel } from "../components/TaskDetailPanel";
 import { TodayPanel } from "../components/TodayPanel";
 import { makeAlternateNextStep } from "../domain/nextStep";
+import {
+  createTag,
+  defaultUserSettings,
+  getDescendantTagIds,
+  type Tag,
+  type UserSettings,
+} from "../domain/tag";
 import {
   addTimeSpent,
   createTask,
@@ -12,13 +20,20 @@ import {
   type Task,
   type TaskStatus,
 } from "../domain/task";
+import { useTagRepository } from "../storage/TagRepositoryContext";
 import { useTaskRepository } from "../storage/TaskRepositoryContext";
 
+type ActivePage = "tasks" | "settings";
+
 export default function App() {
-  const repository = useTaskRepository();
+  const taskRepository = useTaskRepository();
+  const tagRepository = useTagRepository();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [settings, setSettings] = useState<UserSettings>(defaultUserSettings);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [pendingSuggestion, setPendingSuggestion] = useState("");
+  const [activePage, setActivePage] = useState<ActivePage>("tasks");
   const [isReady, setIsReady] = useState(false);
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? tasks[0] ?? null;
@@ -27,36 +42,52 @@ export default function App() {
   useEffect(() => {
     let isActive = true;
 
-    void repository.load().then((snapshot) => {
-      if (!isActive) return;
+    void Promise.all([taskRepository.load(), tagRepository.load()]).then(
+      ([taskSnapshot, tagSnapshot]) => {
+        if (!isActive) return;
 
-      const initialSelectedTask =
-        snapshot.tasks.find((task) => task.id === snapshot.selectedTaskId) ?? snapshot.tasks[0] ?? null;
+        const initialSelectedTask =
+          taskSnapshot.tasks.find((task) => task.id === taskSnapshot.selectedTaskId) ??
+          taskSnapshot.tasks[0] ??
+          null;
 
-      setTasks(snapshot.tasks);
-      setSelectedTaskId(snapshot.selectedTaskId);
-      setPendingSuggestion(
-        initialSelectedTask
-          ? makeAlternateNextStep(initialSelectedTask.title, initialSelectedTask.nextStep)
-          : "",
-      );
-      setIsReady(true);
-    });
+        setTasks(taskSnapshot.tasks);
+        setSelectedTaskId(taskSnapshot.selectedTaskId);
+        setPendingSuggestion(
+          initialSelectedTask
+            ? makeAlternateNextStep(initialSelectedTask.title, initialSelectedTask.nextStep)
+            : "",
+        );
+        setTags(tagSnapshot.tags);
+        setSettings(tagSnapshot.settings);
+        setIsReady(true);
+      },
+    );
 
     return () => {
       isActive = false;
     };
-  }, [repository]);
+  }, [tagRepository, taskRepository]);
 
   useEffect(() => {
     if (!isReady) return;
-    void repository.saveTasks(tasks);
-  }, [isReady, repository, tasks]);
+    void taskRepository.saveTasks(tasks);
+  }, [isReady, taskRepository, tasks]);
 
   useEffect(() => {
     if (!isReady) return;
-    void repository.saveSelectedTaskId(selectedTaskId);
-  }, [isReady, repository, selectedTaskId]);
+    void taskRepository.saveSelectedTaskId(selectedTaskId);
+  }, [isReady, selectedTaskId, taskRepository]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    void tagRepository.saveTags(tags);
+  }, [isReady, tagRepository, tags]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    void tagRepository.saveSettings(settings);
+  }, [isReady, settings, tagRepository]);
 
   function patchTask(taskId: string, patch: Partial<Omit<Task, "id" | "createdAt">>) {
     setTasks((currentTasks) =>
@@ -118,6 +149,39 @@ export default function App() {
     );
   }
 
+  function handleCreateTag(name: string, parentId: string | null) {
+    const tag = createTag(name, parentId, tags);
+    setTags((currentTags) => [...currentTags, tag]);
+  }
+
+  function handleDeleteTag(tagId: string) {
+    const deletedTagIds = getDescendantTagIds(tagId, tags);
+    setTags((currentTags) => currentTags.filter((tag) => !deletedTagIds.has(tag.id)));
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.tagIds.some((assignedTagId) => deletedTagIds.has(assignedTagId))
+          ? updateTask(task, {
+              tagIds: task.tagIds.filter((assignedTagId) => !deletedTagIds.has(assignedTagId)),
+            })
+          : task,
+      ),
+    );
+  }
+
+  function handleAddTagToTask(tagId: string) {
+    if (!selectedTask) return;
+    patchTask(selectedTask.id, {
+      tagIds: Array.from(new Set([...selectedTask.tagIds, tagId])),
+    });
+  }
+
+  function handleRemoveTagFromTask(tagId: string) {
+    if (!selectedTask) return;
+    patchTask(selectedTask.id, {
+      tagIds: selectedTask.tagIds.filter((assignedTagId) => assignedTagId !== tagId),
+    });
+  }
+
   if (!isReady) {
     return (
       <main className="app-shell" aria-busy="true">
@@ -131,38 +195,64 @@ export default function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">ADHDer</p>
-          <h1>今天只推进一点点</h1>
+          <h1>{activePage === "tasks" ? "今天只推进一点点" : "个性化设置"}</h1>
         </div>
-        <div className="today-meter" aria-label="今日重点数量">
-          <span>{todayTaskCount}</span>
-          <small>件今日重点</small>
+        <div className="topbar-actions">
+          {activePage === "tasks" ? (
+            <div className="today-meter" aria-label="今日重点数量">
+              <span>{todayTaskCount}</span>
+              <small>件今日重点</small>
+            </div>
+          ) : null}
+          <button
+            className="secondary settings-button"
+            type="button"
+            onClick={() => setActivePage(activePage === "tasks" ? "settings" : "tasks")}
+          >
+            {activePage === "tasks" ? "设置" : "返回任务"}
+          </button>
         </div>
       </header>
 
-      <section className="workspace" aria-label="ADHDer 工作区">
-        <InboxPanel
+      {activePage === "tasks" ? (
+        <section className="workspace" aria-label="ADHDer 工作区">
+          <InboxPanel
+            tasks={tasks}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={selectTask}
+            onCreateTask={handleCreateTask}
+            onAddTaskToToday={handleAddTaskToToday}
+          />
+          <TodayPanel
+            tasks={tasks}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={selectTask}
+            onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
+          />
+          <TaskDetailPanel
+            task={selectedTask}
+            tags={tags}
+            tagsEnabled={settings.tagsEnabled}
+            pendingSuggestion={pendingSuggestion}
+            onEditNextStep={handleEditNextStep}
+            onRegenerateStep={handleRegenerateStep}
+            onAcceptStep={handleAcceptStep}
+            onStatusChange={handleStatusChange}
+            onTimeSpent={handleTimeSpent}
+            onAddTag={handleAddTagToTask}
+            onRemoveTag={handleRemoveTagFromTask}
+          />
+        </section>
+      ) : (
+        <SettingsPage
+          settings={settings}
+          tags={tags}
           tasks={tasks}
-          selectedTaskId={selectedTaskId}
-          onSelectTask={selectTask}
-          onCreateTask={handleCreateTask}
-          onAddTaskToToday={handleAddTaskToToday}
+          onToggleTags={(tagsEnabled) => setSettings({ tagsEnabled })}
+          onCreateTag={handleCreateTag}
+          onDeleteTag={handleDeleteTag}
         />
-        <TodayPanel
-          tasks={tasks}
-          selectedTaskId={selectedTaskId}
-          onSelectTask={selectTask}
-          onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
-        />
-        <TaskDetailPanel
-          task={selectedTask}
-          pendingSuggestion={pendingSuggestion}
-          onEditNextStep={handleEditNextStep}
-          onRegenerateStep={handleRegenerateStep}
-          onAcceptStep={handleAcceptStep}
-          onStatusChange={handleStatusChange}
-          onTimeSpent={handleTimeSpent}
-        />
-      </section>
+      )}
     </main>
   );
 }

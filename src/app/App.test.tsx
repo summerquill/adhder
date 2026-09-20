@@ -2,8 +2,12 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { defaultUserSettings, type Tag, type UserSettings } from "../domain/tag";
 import type { Task } from "../domain/task";
 import { makeTask } from "../test/fixtures";
+import type { TagRepository } from "../storage/TagRepository";
+import { TagRepositoryProvider } from "../storage/TagRepositoryContext";
+import { LocalTagRepository } from "../storage/localTagRepository";
 import type { TaskRepository } from "../storage/TaskRepository";
 import { TaskRepositoryProvider } from "../storage/TaskRepositoryContext";
 import {
@@ -20,10 +24,26 @@ function createRepository(tasks: Task[] = [], selectedTaskId = tasks[0]?.id ?? n
   };
 }
 
-function renderApp(repository: TaskRepository = new LocalTaskRepository()) {
+function createTagRepository(
+  tags: Tag[] = [],
+  settings: UserSettings = defaultUserSettings,
+): TagRepository {
+  return {
+    load: vi.fn(async () => ({ tags, settings })),
+    saveTags: vi.fn(async () => undefined),
+    saveSettings: vi.fn(async () => undefined),
+  };
+}
+
+function renderApp(
+  repository: TaskRepository = new LocalTaskRepository(),
+  tagRepository: TagRepository = new LocalTagRepository(),
+) {
   return render(
     <TaskRepositoryProvider repository={repository}>
-      <App />
+      <TagRepositoryProvider repository={tagRepository}>
+        <App />
+      </TagRepositoryProvider>
     </TaskRepositoryProvider>,
   );
 }
@@ -107,6 +127,51 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "接受建议" }));
 
     expect(nextStepInput).toHaveValue(suggestion);
+  });
+
+  it("keeps tag controls hidden until tags are enabled in settings", async () => {
+    const user = userEvent.setup();
+    renderApp(
+      createRepository([makeTask({ inToday: true })]),
+      createTagRepository([], { tagsEnabled: false }),
+    );
+
+    await screen.findByLabelText("下一步动作");
+    expect(screen.queryByText("任务标签")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "设置" }));
+    expect(screen.getByRole("switch")).not.toBeChecked();
+    expect(screen.queryByText("标签管理")).not.toBeInTheDocument();
+  });
+
+  it("enables tags, creates a hierarchy and assigns a tag to a task", async () => {
+    const user = userEvent.setup();
+    const task = makeTask({ id: "task-tagged", title: "学习 AI", inToday: true });
+    const tagRepository = createTagRepository([], { tagsEnabled: false });
+    renderApp(createRepository([task]), tagRepository);
+
+    await screen.findByLabelText("下一步动作");
+    await user.click(screen.getByRole("button", { name: "设置" }));
+    await user.click(screen.getByRole("switch"));
+
+    await user.type(screen.getByLabelText("标签名称"), "学习");
+    await user.click(screen.getByRole("button", { name: "添加标签" }));
+
+    await user.type(screen.getByLabelText("标签名称"), "AI");
+    const parentSelect = screen.getByLabelText("父级标签");
+    await user.selectOptions(parentSelect, within(parentSelect).getByRole("option", { name: "学习" }));
+    await user.click(screen.getByRole("button", { name: "添加标签" }));
+
+    await user.click(screen.getByRole("button", { name: "返回任务" }));
+    const taskTagSelect = screen.getByLabelText("选择任务标签");
+    await user.selectOptions(
+      taskTagSelect,
+      within(taskTagSelect).getByRole("option", { name: "学习 / AI" }),
+    );
+    await user.click(screen.getByRole("button", { name: "添加" }));
+
+    expect(screen.getByText("学习 / AI")).toBeInTheDocument();
+    await waitFor(() => expect(tagRepository.saveSettings).toHaveBeenCalledWith({ tagsEnabled: true }));
   });
 
   it("records a task status immediately", async () => {

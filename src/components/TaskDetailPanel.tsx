@@ -1,25 +1,35 @@
+import type { Tag } from "../domain/tag";
 import type { Task, TaskStatus } from "../domain/task";
+import { TagSelector } from "./TagSelector";
 import { StatusSelector } from "./StatusSelector";
 import { TimerControl } from "./TimerControl";
 
 type TaskDetailPanelProps = {
   task: Task | null;
+  tags: readonly Tag[];
+  tagsEnabled: boolean;
   pendingSuggestion: string;
   onEditNextStep: (nextStep: string) => void;
   onRegenerateStep: () => void;
   onAcceptStep: () => void;
   onStatusChange: (status: TaskStatus) => void;
   onTimeSpent: (taskId: string, seconds: number) => void;
+  onAddTag: (tagId: string) => void;
+  onRemoveTag: (tagId: string) => void;
 };
 
 export function TaskDetailPanel({
   task,
+  tags,
+  tagsEnabled,
   pendingSuggestion,
   onEditNextStep,
   onRegenerateStep,
   onAcceptStep,
   onStatusChange,
   onTimeSpent,
+  onAddTag,
+  onRemoveTag,
 }: TaskDetailPanelProps) {
   const canAcceptSuggestion = Boolean(task && pendingSuggestion && pendingSuggestion !== task.nextStep);
 
@@ -63,6 +73,15 @@ export function TaskDetailPanel({
           onChange={(event) => onEditNextStep(event.target.value)}
         />
       </section>
+
+      {tagsEnabled && task ? (
+        <TagSelector
+          tags={tags}
+          selectedTagIds={task.tagIds}
+          onAddTag={onAddTag}
+          onRemoveTag={onRemoveTag}
+        />
+      ) : null}
 
       <TimerControl
         key={task?.id ?? "empty"}
