@@ -39,6 +39,7 @@ describe("LocalTaskRepository", () => {
     const repository = new LocalTaskRepository();
     const mockTask = makeTask({ id: "seed-1", title: "Mock 任务" });
     const {
+      plannedDate: _plannedDate,
       repeatMode: _repeatMode,
       tagIds: _tagIds,
       timeSpentSeconds: _timeSpentSeconds,

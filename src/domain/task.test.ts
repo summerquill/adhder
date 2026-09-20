@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getLocalDateKey } from "./calendar";
 import { makeTask } from "../test/fixtures";
 import { addTimeSpent, createTask, getTodayTasks, isValidTask, normalizeTask } from "./task";
 
@@ -27,14 +28,16 @@ describe("task domain", () => {
 
   it("migrates legacy tasks without execution time", () => {
     const {
+      plannedDate: _plannedDate,
       repeatMode: _repeatMode,
       tagIds: _legacyTagIds,
       timeSpentSeconds: _timeSpentSeconds,
       ...legacyTask
-    } = makeTask();
+    } = makeTask({ inToday: true });
 
     expect(normalizeTask(legacyTask)).toMatchObject({
       id: legacyTask.id,
+      plannedDate: getLocalDateKey(),
       repeatMode: "none",
       tagIds: [],
       timeSpentSeconds: 0,

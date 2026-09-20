@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getLocalDateKey } from "../domain/calendar";
 import { defaultUserSettings, type Tag, type UserSettings } from "../domain/tag";
 import type { Task } from "../domain/task";
 import { makeTask } from "../test/fixtures";
@@ -114,7 +115,8 @@ describe("App", () => {
     const user = userEvent.setup();
     renderApp(createRepository([makeTask({ id: "view-task", title: "查看任务", inToday: true })]));
 
-    await user.click(await screen.findByRole("button", { name: "查看" }));
+    expect(screen.queryByRole("button", { name: "查看" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /查看任务/ }));
 
     expect(screen.getByRole("region", { name: "开始一个小动作" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "返回任务列表" })).toBeInTheDocument();
@@ -162,7 +164,7 @@ describe("App", () => {
     await user.click(within(dialog).getByRole("checkbox", { name: "学习" }));
     await user.click(within(dialog).getByRole("button", { name: "完成" }));
 
-    expect(screen.getByRole("button", { name: "标签 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "学习" })).toBeInTheDocument();
     await waitFor(() => {
       const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
       expect(savedTasks?.[0]?.tagIds).toEqual(["learning"]);
@@ -178,7 +180,7 @@ describe("App", () => {
       inToday: true,
     });
     renderApp(createRepository([task]));
-    await user.click(await screen.findByRole("button", { name: "查看" }));
+    await user.click(await screen.findByRole("button", { name: /查看任务/ }));
 
     const nextStepInput = await screen.findByLabelText("下一步动作");
     const suggestion = screen.getByTestId("suggestion-text").textContent;
@@ -223,7 +225,7 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "添加标签" }));
 
     await user.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
-    await user.click(screen.getByRole("button", { name: "查看" }));
+    await user.click(screen.getByRole("button", { name: /查看任务/ }));
     const taskTagSelect = screen.getByLabelText("选择任务标签");
     await user.selectOptions(
       taskTagSelect,
@@ -244,14 +246,14 @@ describe("App", () => {
     const user = userEvent.setup();
     renderApp(createRepository([makeTask({ id: "next-step-task", inToday: true })]));
 
-    await user.click(await screen.findByRole("button", { name: "查看" }));
+    await user.click(await screen.findByRole("button", { name: /查看任务/ }));
     expect(screen.getByText("下一步建议")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "返回任务列表" }));
     await user.click(screen.getByRole("tab", { name: /设置/ }));
     await user.click(screen.getByRole("switch", { name: /显示下一步建议/ }));
     await user.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
-    await user.click(screen.getByRole("button", { name: "查看" }));
+    await user.click(screen.getByRole("button", { name: /查看任务/ }));
 
     expect(screen.queryByText("下一步建议")).not.toBeInTheDocument();
   });
@@ -265,7 +267,7 @@ describe("App", () => {
     await user.type(screen.getByLabelText("自定义倒计时分钟数"), "25");
     await user.click(screen.getByRole("button", { name: "添加时长" }));
     await user.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
-    await user.click(screen.getByRole("button", { name: "查看" }));
+    await user.click(screen.getByRole("button", { name: /查看任务/ }));
 
     expect(screen.getByRole("button", { name: "5 分钟" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "10 分钟" })).toBeInTheDocument();
@@ -273,10 +275,48 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: "15 分钟" })).not.toBeInTheDocument();
   });
 
+  it("opens a calendar and shows the selected day's task statuses", async () => {
+    const user = userEvent.setup();
+    const todayKey = getLocalDateKey();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = getLocalDateKey(yesterday);
+    const tasks = [
+      makeTask({
+        id: "today-task",
+        title: "今日任务",
+        inToday: true,
+        plannedDate: todayKey,
+        status: "完成",
+      }),
+      makeTask({
+        id: "past-task",
+        title: "昨日任务",
+        inToday: false,
+        plannedDate: yesterdayKey,
+        status: "暂时放下",
+      }),
+    ];
+    renderApp(createRepository(tasks));
+
+    await user.click(await screen.findByRole("tab", { name: /今日 3 件事/ }));
+    await user.click(screen.getByRole("button", { name: "日历" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("今日任务")).toBeInTheDocument();
+    expect(within(dialog).getByText("完成")).toBeInTheDocument();
+
+    await user.click(
+      within(dialog).getByRole("button", { name: new RegExp(`${yesterdayKey}.*1 个任务`) }),
+    );
+    expect(within(dialog).getByText("昨日任务")).toBeInTheDocument();
+    expect(within(dialog).getByText("暂时放下")).toBeInTheDocument();
+  });
+
   it("records a task status immediately", async () => {
     const user = userEvent.setup();
     renderApp(createRepository([makeTask({ inToday: true })]));
-    await user.click(await screen.findByRole("button", { name: "查看" }));
+    await user.click(await screen.findByRole("button", { name: /查看任务/ }));
 
     await user.click(await screen.findByRole("button", { name: "完成" }));
 
@@ -292,7 +332,7 @@ describe("App", () => {
     renderApp(repository);
 
     await screen.findAllByText("任务 A");
-    fireEvent.click(screen.getAllByRole("button", { name: "查看" })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /查看任务/ })[0]!);
     vi.useFakeTimers();
 
     fireEvent.click(screen.getByRole("button", { name: "正计时" }));
@@ -308,7 +348,7 @@ describe("App", () => {
     const taskBTitle = screen.getAllByText("任务 B")[0]!;
     const taskBCard = taskBTitle.closest("article");
     expect(taskBCard).not.toBeNull();
-    fireEvent.click(within(taskBCard as HTMLElement).getByRole("button", { name: "查看" }));
+    fireEvent.click(within(taskBCard as HTMLElement).getByRole("button", { name: /查看任务/ }));
 
     act(() => {
       vi.advanceTimersByTime(2000);

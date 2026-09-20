@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
 
+import type { Tag } from "../domain/tag";
 import type { Task } from "../domain/task";
 import { TaskCard } from "./TaskCard";
 
 type InboxPanelProps = {
   tasks: readonly Task[];
+  tags: readonly Tag[];
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
   onCreateTask: (title: string) => void;
@@ -16,6 +18,7 @@ type InboxPanelProps = {
 
 export function InboxPanel({
   tasks,
+  tags,
   selectedTaskId,
   onSelectTask,
   onCreateTask,
@@ -70,6 +73,7 @@ export function InboxPanel({
               <TaskCard
                 key={task.id}
                 task={task}
+                tags={tags}
                 isSelected={task.id === selectedTaskId}
                 onSelect={() => onSelectTask(task.id)}
                 moveLabel={isInToday ? "已在今日" : "加入今日"}

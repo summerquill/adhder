@@ -6,6 +6,7 @@ import { SettingsPage } from "../components/SettingsPage";
 import { TaskDetailPanel } from "../components/TaskDetailPanel";
 import { TagSelectionModal } from "../components/TagSelectionModal";
 import { TodayPanel } from "../components/TodayPanel";
+import { getLocalDateKey } from "../domain/calendar";
 import { makeAlternateNextStep } from "../domain/nextStep";
 import type { RepeatMode } from "../domain/repeat";
 import {
@@ -65,11 +66,20 @@ export default function App() {
       ([taskSnapshot, tagSnapshot]) => {
         if (!isActive) return;
 
+        const todayKey = getLocalDateKey();
         const validTagIds = new Set(tagSnapshot.tags.map((tag) => tag.id));
-        const migratedTasks = taskSnapshot.tasks.map((task) => ({
-          ...task,
-          tagIds: task.tagIds.filter((tagId) => validTagIds.has(tagId)),
-        }));
+        const migratedTasks = taskSnapshot.tasks.map((task) => {
+          const migratedTask = {
+            ...task,
+            tagIds: task.tagIds.filter((tagId) => validTagIds.has(tagId)),
+          };
+
+          if (migratedTask.inToday && migratedTask.plannedDate !== todayKey) {
+            return updateTask(migratedTask, { inToday: false });
+          }
+
+          return migratedTask;
+        });
         const initialSelectedTask =
           migratedTasks.find((task) => task.id === taskSnapshot.selectedTaskId) ??
           migratedTasks[0] ??
@@ -147,7 +157,7 @@ export default function App() {
     const task = tasks.find((item) => item.id === taskId);
     if (!task) return;
 
-    patchTask(task.id, { inToday: true });
+    patchTask(task.id, { inToday: true, plannedDate: getLocalDateKey() });
     selectTask(task.id);
   }
 
@@ -288,6 +298,7 @@ export default function App() {
           <div className="tab-panel" role="tabpanel" aria-label="快速 Inbox">
             <InboxPanel
               tasks={tasks}
+              tags={tags}
               selectedTaskId={selectedTaskId}
               onSelectTask={openTask}
               onCreateTask={handleCreateTask}
@@ -303,9 +314,12 @@ export default function App() {
           <div className="tab-panel" role="tabpanel" aria-label="今日 3 件事">
             <TodayPanel
               tasks={tasks}
+              tags={tags}
               selectedTaskId={selectedTaskId}
               onSelectTask={openTask}
-              onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
+              onRemoveTaskFromToday={(taskId) =>
+                patchTask(taskId, { inToday: false, plannedDate: null })
+              }
             />
           </div>
         ) : null}

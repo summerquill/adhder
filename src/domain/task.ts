@@ -1,3 +1,4 @@
+import { getLocalDateKey } from "./calendar";
 import { makeNextStep } from "./nextStep";
 import { normalizeRepeatMode, type RepeatMode } from "./repeat";
 
@@ -11,6 +12,7 @@ export type Task = {
   status: TaskStatus;
   nextStep: string;
   inToday: boolean;
+  plannedDate: string | null;
   tagIds: string[];
   repeatMode: RepeatMode;
   timeSpentSeconds: number;
@@ -34,6 +36,13 @@ export function normalizeTask(value: unknown): Task | null {
 
   if (!isValid) return null;
 
+  const plannedDate =
+    typeof task.plannedDate === "string"
+      ? task.plannedDate
+      : task.inToday === true
+        ? getLocalDateKey()
+        : null;
+
   const tagIds = Array.isArray(task.tagIds)
     ? Array.from(new Set(task.tagIds.filter((tagId): tagId is string => typeof tagId === "string")))
     : [];
@@ -51,6 +60,7 @@ export function normalizeTask(value: unknown): Task | null {
     status: task.status as TaskStatus,
     nextStep: task.nextStep as string,
     inToday: task.inToday as boolean,
+    plannedDate,
     tagIds,
     repeatMode: normalizeRepeatMode(task.repeatMode),
     timeSpentSeconds,
@@ -83,6 +93,7 @@ export function createTask(title: string): Task {
     title,
     status: "未开始",
     inToday: true,
+    plannedDate: getLocalDateKey(),
     nextStep: makeNextStep(title),
     tagIds: [],
     repeatMode: "none",

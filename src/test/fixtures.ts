@@ -1,3 +1,4 @@
+import { getLocalDateKey } from "../domain/calendar";
 import type { Task } from "../domain/task";
 
 export function makeTask(overrides: Partial<Task> = {}): Task {
@@ -7,6 +8,7 @@ export function makeTask(overrides: Partial<Task> = {}): Task {
     status: "未开始",
     nextStep: "先看一眼",
     inToday: false,
+    plannedDate: getLocalDateKey(),
     tagIds: [],
     repeatMode: "none",
     timeSpentSeconds: 0,
