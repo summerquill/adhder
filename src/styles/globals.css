@@ -250,6 +250,7 @@ h3 {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -1017,6 +1018,7 @@ h3 {
 .energy-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
   padding-bottom: 12px;
@@ -1182,6 +1184,12 @@ button.care-entry:hover {
 }
 
 .care-panel {
+  display: block;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.care-page {
   display: grid;
   align-content: start;
   gap: 16px;

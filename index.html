@@ -18,6 +18,55 @@
         <p>然后打开 http://localhost:4173/</p>
       </main>
     </div>
+    <div
+      id="boot-error"
+      hidden
+      style="
+        max-width: 720px;
+        margin: 24px auto;
+        padding: 16px 20px;
+        border: 1px solid #e2c3bd;
+        border-radius: 12px;
+        background: #fdf1ef;
+        color: #a04434;
+        font-family: sans-serif;
+        line-height: 1.6;
+      "
+    ></div>
+    <script>
+      // 应用挂载失败时给出可见提示，避免浏览器里出现完全空白的页面。
+      (function () {
+        var banner = document.getElementById("boot-error");
+
+        function isMounted() {
+          return Boolean(document.querySelector(".app-shell"));
+        }
+
+        function report(detail) {
+          if (!banner || isMounted()) return;
+          banner.hidden = false;
+          banner.textContent =
+            "ADHDer 没有成功加载：" +
+            detail +
+            " 请确认开发服务器仍在运行（npm run dev），然后刷新页面。";
+        }
+
+        window.addEventListener("error", function (event) {
+          report((event && event.message) || "脚本执行出错");
+        });
+
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event && event.reason;
+          report((reason && reason.message) || String(reason || "未处理的异常"));
+        });
+
+        window.addEventListener("load", function () {
+          window.setTimeout(function () {
+            report("应用在 8 秒内没有完成挂载。");
+          }, 8000);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

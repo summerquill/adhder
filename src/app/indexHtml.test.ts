@@ -8,4 +8,11 @@ describe("index.html", () => {
     expect(indexHtml).toContain("npm run dev");
     expect(indexHtml).toContain("http://localhost:4173/");
   });
+
+  it("surfaces a visible message instead of a blank page when mounting fails", () => {
+    expect(indexHtml).toContain('id="boot-error"');
+    expect(indexHtml).toContain(".app-shell");
+    expect(indexHtml).toContain("ADHDer 没有成功加载");
+    expect(indexHtml).toContain("unhandledrejection");
+  });
 });

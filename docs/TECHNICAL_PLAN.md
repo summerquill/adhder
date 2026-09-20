@@ -512,6 +512,10 @@ npm run preview
 
 不要使用 `python3 -m http.server 4173` 直接托管项目根目录。Python 的静态文件服务器不会编译 `src/main.tsx` 和 TypeScript 模块，浏览器会因无法加载 Vite 入口而显示空白页。生产验证应运行 `npm run build` 后使用 `npm run preview`。
 
+`npm run dev` 会先执行 `scripts/check-dev-port.mjs`。如果 4173 已被上一次残留的开发服务器占用，命令会直接给出明确提示并退出，避免出现“看起来启动过、浏览器却是空白页”的情况。
+
+`index.html` 内置挂载失败保护：当入口脚本报错、Promise 未处理异常，或 8 秒内没有挂载出 `.app-shell` 时，页面会显示可见的错误横幅而不是完全空白。
+
 交付要求：
 
 - `npm run typecheck` 通过。

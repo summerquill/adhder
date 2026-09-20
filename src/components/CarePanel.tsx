@@ -78,7 +78,7 @@ export function CarePanel({
   }
 
   return (
-    <section className="care-panel" aria-labelledby="careTitle">
+    <section className="care-page" aria-labelledby="careTitle">
       <div className="section-head">
         <div>
           <p className="eyebrow">Care</p>
