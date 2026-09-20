@@ -16,8 +16,7 @@ type TaskDetailPanelProps = {
   onAcceptStep: () => void;
   onStatusChange: (status: TaskStatus) => void;
   onTimeSpent: (taskId: string, seconds: number) => void;
-  onAddTag: (tagId: string) => void;
-  onRemoveTag: (tagId: string) => void;
+  onSelectTag: (tagId: string | null) => void;
 };
 
 export function TaskDetailPanel({
@@ -32,8 +31,7 @@ export function TaskDetailPanel({
   onAcceptStep,
   onStatusChange,
   onTimeSpent,
-  onAddTag,
-  onRemoveTag,
+  onSelectTag,
 }: TaskDetailPanelProps) {
   const canAcceptSuggestion = Boolean(task && pendingSuggestion && pendingSuggestion !== task.nextStep);
 
@@ -83,9 +81,8 @@ export function TaskDetailPanel({
       {tagsEnabled && task ? (
         <TagSelector
           tags={tags}
-          selectedTagIds={task.tagIds}
-          onAddTag={onAddTag}
-          onRemoveTag={onRemoveTag}
+          selectedTagId={task.tagIds[0] ?? null}
+          onSelect={onSelectTag}
         />
       ) : null}
 

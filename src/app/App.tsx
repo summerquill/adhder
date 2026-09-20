@@ -294,20 +294,6 @@ export default function App() {
     );
   }
 
-  function handleAddTagToTask(tagId: string) {
-    if (!selectedTask) return;
-    patchTask(selectedTask.id, {
-      tagIds: Array.from(new Set([...selectedTask.tagIds, tagId])),
-    });
-  }
-
-  function handleRemoveTagFromTask(tagId: string) {
-    if (!selectedTask) return;
-    patchTask(selectedTask.id, {
-      tagIds: selectedTask.tagIds.filter((assignedTagId) => assignedTagId !== tagId),
-    });
-  }
-
   function handleSetTaskTag(taskId: string, tagId: string | null) {
     patchTask(taskId, { tagIds: tagId ? [tagId] : [] });
   }
@@ -426,8 +412,10 @@ export default function App() {
               onAcceptStep={handleAcceptStep}
               onStatusChange={handleStatusChange}
               onTimeSpent={handleTimeSpent}
-              onAddTag={handleAddTagToTask}
-              onRemoveTag={handleRemoveTagFromTask}
+              onSelectTag={(tagId) => {
+                if (!selectedTask) return;
+                handleSetTaskTag(selectedTask.id, tagId);
+              }}
             />
           </div>
         ) : null}

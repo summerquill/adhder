@@ -344,11 +344,12 @@ describe("App", () => {
     expect(screen.queryByText("标签管理")).not.toBeInTheDocument();
   });
 
-  it("enables tags, creates a hierarchy and assigns a tag to a task", async () => {
+  it("enables tags, creates a hierarchy and assigns a tag from the detail page", async () => {
     const user = userEvent.setup();
     const task = makeTask({ id: "task-tagged", title: "学习 AI", inToday: true });
     const tagRepository = createTagRepository([], { ...defaultUserSettings, tagsEnabled: false });
-    renderApp(createRepository([task]), tagRepository);
+    const repository = createRepository([task]);
+    renderApp(repository, tagRepository);
 
     await screen.findByLabelText("先把脑子里的事放下来");
     await user.click(screen.getByRole("tab", { name: /设置/ }));
@@ -364,14 +365,17 @@ describe("App", () => {
 
     await user.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
     await user.click(screen.getByRole("button", { name: /查看任务/ }));
-    const taskTagSelect = screen.getByLabelText("选择任务标签");
-    await user.selectOptions(
-      taskTagSelect,
-      within(taskTagSelect).getByRole("option", { name: "学习 / AI" }),
-    );
-    await user.click(screen.getByRole("button", { name: "添加" }));
 
-    expect(screen.getByText("学习 / AI")).toBeInTheDocument();
+    // 二级标签默认收起，先选中一级标签才会展开
+    expect(screen.queryByRole("radio", { name: "AI" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "学习" }));
+    await user.click(screen.getByRole("radio", { name: "AI" }));
+
+    expect(screen.getByRole("radio", { name: "AI" })).toBeChecked();
+    await waitFor(() => {
+      const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
+      expect(savedTasks?.[0]?.tagIds).toHaveLength(1);
+    });
     await waitFor(() =>
       expect(tagRepository.saveSettings).toHaveBeenLastCalledWith({
         ...defaultUserSettings,

@@ -115,6 +115,34 @@ export function buildTagPath(tagId: string, tags: readonly Tag[]): string {
   return names.join(" / ");
 }
 
+export function getAncestorTagIds(tagId: string, tags: readonly Tag[]): string[] {
+  const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
+  const ancestors: string[] = [];
+  const visited = new Set<string>();
+  let current = tagMap.get(tagId);
+
+  while (current?.parentId && !visited.has(current.id)) {
+    visited.add(current.id);
+    ancestors.unshift(current.parentId);
+    current = tagMap.get(current.parentId);
+  }
+
+  return ancestors;
+}
+
+export function hasChildTags(tagId: string, tags: readonly Tag[]): boolean {
+  return tags.some((tag) => tag.parentId === tagId);
+}
+
+export function getVisibleTags(
+  tags: readonly Tag[],
+  expandedTagIds: ReadonlySet<string>,
+): Tag[] {
+  return sortTagsHierarchically(tags).filter((tag) =>
+    getAncestorTagIds(tag.id, tags).every((ancestorId) => expandedTagIds.has(ancestorId)),
+  );
+}
+
 export function getDescendantTagIds(tagId: string, tags: readonly Tag[]): Set<string> {
   const descendants = new Set<string>([tagId]);
   let changed = true;

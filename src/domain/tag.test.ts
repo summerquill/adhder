@@ -4,8 +4,11 @@ import {
   buildTagPath,
   createTag,
   defaultUserSettings,
+  getAncestorTagIds,
   getDescendantTagIds,
   getTagDepth,
+  getVisibleTags,
+  hasChildTags,
   normalizeUserSettings,
   sortTagsHierarchically,
   type Tag,
@@ -40,6 +43,32 @@ describe("tag domain", () => {
       name: "英语",
       parentId: learning.id,
     });
+  });
+
+  it("reveals child tags only after their parent is expanded", () => {
+    const advanced: Tag = {
+      id: "advanced",
+      name: "进阶",
+      parentId: ai.id,
+      createdAt: "2026-09-20T00:02:00.000Z",
+      updatedAt: "2026-09-20T00:02:00.000Z",
+    };
+    const all = [learning, ai, advanced];
+
+    expect(getAncestorTagIds(advanced.id, all)).toEqual([learning.id, ai.id]);
+    expect(hasChildTags(learning.id, all)).toBe(true);
+    expect(hasChildTags(advanced.id, all)).toBe(false);
+
+    expect(getVisibleTags(all, new Set()).map((tag) => tag.id)).toEqual([learning.id]);
+    expect(getVisibleTags(all, new Set([learning.id])).map((tag) => tag.id)).toEqual([
+      learning.id,
+      ai.id,
+    ]);
+    expect(getVisibleTags(all, new Set([learning.id, ai.id])).map((tag) => tag.id)).toEqual([
+      learning.id,
+      ai.id,
+      advanced.id,
+    ]);
   });
 
   it("keeps new module toggles when normalizing legacy settings", () => {

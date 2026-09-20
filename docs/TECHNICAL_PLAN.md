@@ -202,13 +202,14 @@ src/
 | `SettingsPage.tsx` | 个性化设置页 | 控制标签和下一步建议开关，组合倒计时、标签管理和时间统计 | `TimerPresetSettings`、`TagManager`、`TagTimeStats` |
 | `TimerPresetSettings.tsx` | 倒计时设置 | 添加、删除并限制最多 3 个自定义倒计时 | `UserSettings` |
 | `RepeatModeModal.tsx` | 循环设置弹窗 | 设置任务的循环规则 | `repeat`、`Task` |
-| `TagSelectionModal.tsx` | 标签选择弹窗 | 用单选设置任务标签，并可直接新建标签后选中 | `tag`、`Task` |
+| `TagChoiceList.tsx` | 标签选择控件 | 单选标签，并按层级渐进展开子标签 | `tag` 领域函数 |
+| `TagSelectionModal.tsx` | 标签选择弹窗 | 用 TagChoiceList 单选标签，并可直接新建标签后选中 | `TagChoiceList`、`tag`、`Task` |
 | `DayPlanModal.tsx` | 日计划弹窗 | 按月选择日期并查看当天任务状态 | `calendar`、`Task` |
 | `TagManager.tsx` | 标签管理 | 创建任意层级标签、展示层级和删除标签树 | `Tag` 领域函数 |
-| `TagSelector.tsx` | 可选任务标签控件 | 为当前任务添加和移除多个标签 | `Tag` 领域函数 |
+| `TagSelector.tsx` | 可选任务标签控件 | 在任务详情页用 TagChoiceList 单选标签 | `TagChoiceList`、`Tag` |
 | `TagTimeStats.tsx` | 标签统计 | 展示直接时间和包含子标签的去重总时间 | `tagStats`、`timer` |
 | `domain/task.ts` | 领域模型 | 任务类型、状态、校验、迁移、创建、更新、标签关联和时间累计 | `nextStep` |
-| `domain/tag.ts` | 标签领域模型 | 标签层级、路径、后代、排序、创建和设置迁移 | 无 React、无存储 |
+| `domain/tag.ts` | 标签领域模型 | 标签层级、路径、祖先、后代、可见层级、排序、创建和设置迁移 | 无 React、无存储 |
 | `domain/tagStats.ts` | 统计领域逻辑 | 按标签层级聚合任务去重后的执行时间 | `tag`、`task` |
 | `audio/celebration.ts` | 基础设施 | 用 WebAudio 合成短庆祝音，缺少音频能力时静默降级 | 无 React、无存储 |
 | `domain/energy.ts` | 领域模型 | 今日状态事件、校验、迁移、创建和查询 | `calendar` |
@@ -473,7 +474,11 @@ type UserSettings = {
 
 标签功能默认关闭。用户可以在设置页开启、创建任意层级标签，并在任务详情中为当前任务添加多个标签。关闭功能后，标签选择、标签管理和统计均隐藏，但数据保留。
 
-任务卡上的标签弹窗采用单选：`onSelectTag(tagId | null)` 会把任务的 `tagIds` 写成 `[tagId]` 或 `[]`，不改变底层数组结构，因此详情页的多标签能力和标签统计都不受影响。弹窗内的“添加标签”区域通过 `onCreateTag(name, parentId)` 创建标签并返回新 `Tag`，由弹窗立即选中。
+任务卡弹窗和任务详情页共用 `TagChoiceList`，采用单选：`onSelectTag(tagId | null)` 会把任务的 `tagIds` 写成 `[tagId]` 或 `[]`。底层仍是数组结构，因此标签时间统计和未来的多选能力都不受影响。
+
+标签列表按层级渐进展开：初始只显示一级标签，选中某一级后展开它的下一级，同时收起其他分支；也可以点箭头独立展开或收起。`getVisibleTags` 计算可见集合，`getAncestorTagIds` 保证选中项的父级链始终展开，`hasChildTags` 决定是否显示展开按钮。
+
+弹窗内的“添加标签”区域通过 `onCreateTag(name, parentId)` 创建标签并返回新 `Tag`，由弹窗立即选中。
 
 ### 标签时间统计
 

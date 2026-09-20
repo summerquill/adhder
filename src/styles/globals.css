@@ -779,10 +779,6 @@ h3 {
   min-height: 20px;
 }
 
-.tag-option {
-  padding-left: 13px;
-}
-
 .modal-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1401,4 +1397,53 @@ button.care-entry:hover {
 
 .tag-create-block .tag-create-form input {
   grid-column: 1 / -1;
+}
+
+.tag-choice-list {
+  display: grid;
+  gap: 8px;
+}
+
+.tag-choice-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-choice-option {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.tag-choice-option input {
+  flex: 0 0 auto;
+  width: 20px;
+  min-height: 20px;
+  accent-color: var(--brand);
+}
+
+.tag-expand-button {
+  flex: 0 0 auto;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  color: var(--brand-dark);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.tag-expand-button:hover {
+  color: var(--brand-dark);
+  border-color: var(--brand);
+  background: var(--brand-soft);
 }

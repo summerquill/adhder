@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 
-import { buildTagPath, getTagDepth, sortTagsHierarchically, type Tag } from "../domain/tag";
+import { buildTagPath, sortTagsHierarchically, type Tag } from "../domain/tag";
 import type { Task } from "../domain/task";
+import { TagChoiceList } from "./TagChoiceList";
 
 type TagSelectionModalProps = {
   task: Task;
@@ -49,36 +50,12 @@ export function TagSelectionModal({
           </div>
         </div>
 
-        <fieldset className="tag-choice-group">
-          <legend>选择一个标签</legend>
-          <div className="modal-option-list">
-            <label className="modal-option tag-option">
-              <span>不使用标签</span>
-              <input
-                type="radio"
-                name="task-tag"
-                checked={selectedTagId === ""}
-                onChange={() => onSelectTag(null)}
-              />
-            </label>
-
-            {sortedTags.map((tag) => (
-              <label
-                className="modal-option tag-option"
-                key={tag.id}
-                style={{ paddingLeft: `${14 + getTagDepth(tag.id, tags) * 18}px` }}
-              >
-                <span>{buildTagPath(tag.id, tags)}</span>
-                <input
-                  type="radio"
-                  name="task-tag"
-                  checked={selectedTagId === tag.id}
-                  onChange={() => onSelectTag(tag.id)}
-                />
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <TagChoiceList
+          tags={tags}
+          selectedTagId={selectedTagId === "" ? null : selectedTagId}
+          onSelect={onSelectTag}
+          name="modal-task-tag"
+        />
 
         <div className="tag-create-block">
           <h4>添加标签</h4>
