@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import type { Tag } from "../domain/tag";
-import type { Task } from "../domain/task";
+import { sortTasksByStatus, type Task } from "../domain/task";
 import { TaskCard } from "./TaskCard";
 
 type InboxPanelProps = {
@@ -28,6 +28,7 @@ export function InboxPanel({
   onOpenTagSettings,
 }: InboxPanelProps) {
   const [title, setTitle] = useState("");
+  const sortedTasks = sortTasksByStatus(tasks);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,10 +64,10 @@ export function InboxPanel({
       </form>
 
       <div className="task-list" aria-live="polite">
-        {tasks.length === 0 ? (
+        {sortedTasks.length === 0 ? (
           <div className="empty-state">Inbox 现在是空的。</div>
         ) : (
-          tasks.map((task) => {
+          sortedTasks.map((task) => {
             const isInToday = task.inToday;
 
             return (

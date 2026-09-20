@@ -485,7 +485,7 @@ type UserSettings = {
 
 任务卡和日历共用 `taskStatusClassNames`，把状态映射为 `status-active` / `status-pending` / `status-paused` / `status-done` 四种配色。
 
-`getTodayTasks` 使用 `sortTodayTasks` 排序：先按 `taskStatusOrder`（进行中 → 未开始 → 暂时放下 → 完成），再按 `createdAt` 从早到晚，最后用 `id` 保证顺序稳定。
+`sortTasksByStatus` 是列表排序的唯一入口：先按 `taskStatusOrder`（进行中 → 未开始 → 暂时放下 → 完成），再按 `createdAt` 从早到晚，最后用 `id` 保证顺序稳定。`getTodayTasks` 和 `InboxPanel` 都使用它，两个列表的排序保持一致。
 
 状态从其他值变为「完成」时，`App` 会关闭任务详情页并切回今日 Tab，同时按设置播放庆祝音效。
 

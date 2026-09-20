@@ -144,6 +144,37 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: "今日已满" })).not.toBeInTheDocument();
   });
 
+  it("orders inbox tasks with the same rule as the today list", async () => {
+    const tasks = [
+      makeTask({
+        id: "inbox-done",
+        title: "已完成的事",
+        status: "完成",
+        createdAt: "2026-09-20T01:00:00.000Z",
+      }),
+      makeTask({
+        id: "inbox-pending",
+        title: "没开始的事",
+        status: "未开始",
+        createdAt: "2026-09-20T02:00:00.000Z",
+      }),
+      makeTask({
+        id: "inbox-active",
+        title: "在做的事",
+        status: "进行中",
+        createdAt: "2026-09-20T05:00:00.000Z",
+      }),
+    ];
+    renderApp(createRepository(tasks));
+
+    await screen.findByText("在做的事");
+    const titles = Array.from(document.querySelectorAll(".inbox-panel .task-title")).map(
+      (node) => node.textContent,
+    );
+
+    expect(titles).toEqual(["在做的事", "没开始的事", "已完成的事"]);
+  });
+
   it("uses an injected repository instead of localStorage directly", async () => {
     const user = userEvent.setup();
     const repository = createRepository();
