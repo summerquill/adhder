@@ -96,6 +96,7 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 后续可以新增 Supabase 实现，而不需要让组件感知存储来源。
 - 任务存储键继续使用 `adhder.tasks.v1` 和 `adhder.selectedTaskId.v1`。
 - 标签和设置使用 `adhder.tags.v1` 和 `adhder.settings.v1`。
+- 用户状态使用 `adhder.energy.v1` 保存事件记录，当天界面只读取当天最后一条。
 - 旧任务缺少 `plannedDate`、`tagIds`、`repeatMode` 或 `timeSpentSeconds` 时分别按当天/空值、`[]`、`none` 和 `0` 迁移。
 - `id` 以 `seed-` 开头的历史 Mock 任务会被过滤。
 
@@ -135,6 +136,7 @@ src/
     repeat.ts
     nextStep.ts
     timer.ts
+    energy.ts
   storage/
     TaskRepository.ts
     TaskRepositoryContext.tsx
@@ -142,6 +144,9 @@ src/
     TagRepository.ts
     TagRepositoryContext.tsx
     localTagRepository.ts
+    EnergyRepository.ts
+    EnergyRepositoryContext.tsx
+    localEnergyRepository.ts
   styles/
     globals.css
   test/
