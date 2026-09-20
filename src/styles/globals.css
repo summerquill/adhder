@@ -1447,3 +1447,36 @@ button.care-entry:hover {
   border-color: var(--brand);
   background: var(--brand-soft);
 }
+
+.tag-add-toggle {
+  flex: 0 0 auto;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  color: var(--brand-dark);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tag-add-toggle:hover {
+  color: var(--brand-dark);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.tag-selector-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tag-done-button {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 10px;
+  font-size: 12px;
+}

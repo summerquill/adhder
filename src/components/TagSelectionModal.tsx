@@ -19,6 +19,7 @@ export function TagSelectionModal({
   onCreateTag,
   onClose,
 }: TagSelectionModalProps) {
+  const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagParentId, setNewTagParentId] = useState("");
   const sortedTags = sortTagsHierarchically(tags);
@@ -48,6 +49,15 @@ export function TagSelectionModal({
             <p className="eyebrow">任务标签</p>
             <h3 id="tagSelectionTitle">{task.title}</h3>
           </div>
+          <button
+            className="tag-add-toggle"
+            type="button"
+            aria-label="添加标签"
+            aria-expanded={isAddingTag}
+            onClick={() => setIsAddingTag((current) => !current)}
+          >
+            +
+          </button>
         </div>
 
         <TagChoiceList
@@ -57,32 +67,34 @@ export function TagSelectionModal({
           name="modal-task-tag"
         />
 
-        <div className="tag-create-block">
-          <h4>添加标签</h4>
-          <form className="tag-create-form" onSubmit={handleCreateTag}>
-            <input
-              type="text"
-              aria-label="新标签名称"
-              placeholder="新标签名称"
-              autoComplete="off"
-              value={newTagName}
-              onChange={(event) => setNewTagName(event.target.value)}
-            />
-            <select
-              aria-label="新标签的上级标签"
-              value={newTagParentId}
-              onChange={(event) => setNewTagParentId(event.target.value)}
-            >
-              <option value="">顶层标签</option>
-              {sortedTags.map((tag) => (
-                <option key={tag.id} value={tag.id}>
-                  {buildTagPath(tag.id, tags)}
-                </option>
-              ))}
-            </select>
-            <button type="submit">添加标签</button>
-          </form>
-        </div>
+        {isAddingTag ? (
+          <div className="tag-create-block">
+            <h4>新建标签</h4>
+            <form className="tag-create-form" onSubmit={handleCreateTag}>
+              <input
+                type="text"
+                aria-label="新标签名称"
+                placeholder="新标签名称"
+                autoComplete="off"
+                value={newTagName}
+                onChange={(event) => setNewTagName(event.target.value)}
+              />
+              <select
+                aria-label="新标签的上级标签"
+                value={newTagParentId}
+                onChange={(event) => setNewTagParentId(event.target.value)}
+              >
+                <option value="">顶层标签</option>
+                {sortedTags.map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {buildTagPath(tag.id, tags)}
+                  </option>
+                ))}
+              </select>
+              <button type="submit">创建标签</button>
+            </form>
+          </div>
+        ) : null}
 
         <div className="modal-actions modal-actions-single">
           <button type="button" onClick={onClose}>

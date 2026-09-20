@@ -293,8 +293,12 @@ describe("App", () => {
 
     await user.click(await screen.findByRole("button", { name: "标签" }));
     const dialog = screen.getByRole("dialog", { name: "新建标签任务" });
-    await user.type(within(dialog).getByLabelText("新标签名称"), "运动");
+
+    // 新建表单默认隐藏，点右上角加号才出现
+    expect(within(dialog).queryByLabelText("新标签名称")).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "添加标签" }));
+    await user.type(within(dialog).getByLabelText("新标签名称"), "运动");
+    await user.click(within(dialog).getByRole("button", { name: "创建标签" }));
 
     expect(within(dialog).getByRole("radio", { name: "运动" })).toBeChecked();
 
@@ -366,12 +370,21 @@ describe("App", () => {
     await user.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
     await user.click(screen.getByRole("button", { name: /查看任务/ }));
 
+    // 标签区域默认收起，点加号才展开
+    expect(screen.queryByRole("radio", { name: "学习" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "选择标签" }));
+
     // 二级标签默认收起，先选中一级标签才会展开
     expect(screen.queryByRole("radio", { name: "AI" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "学习" }));
     await user.click(screen.getByRole("radio", { name: "AI" }));
 
     expect(screen.getByRole("radio", { name: "AI" })).toBeChecked();
+
+    // 完成后收起标签列表，只留下当前标签
+    await user.click(screen.getByRole("button", { name: "完成标签选择" }));
+    expect(screen.getByText("当前标签：学习 / AI")).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "AI" })).not.toBeInTheDocument();
     await waitFor(() => {
       const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
       expect(savedTasks?.[0]?.tagIds).toHaveLength(1);

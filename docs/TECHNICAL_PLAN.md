@@ -206,7 +206,7 @@ src/
 | `TagSelectionModal.tsx` | 标签选择弹窗 | 用 TagChoiceList 单选标签，并可直接新建标签后选中 | `TagChoiceList`、`tag`、`Task` |
 | `DayPlanModal.tsx` | 日计划弹窗 | 按月选择日期并查看当天任务状态 | `calendar`、`Task` |
 | `TagManager.tsx` | 标签管理 | 创建任意层级标签、展示层级和删除标签树 | `Tag` 领域函数 |
-| `TagSelector.tsx` | 可选任务标签控件 | 在任务详情页用 TagChoiceList 单选标签 | `TagChoiceList`、`Tag` |
+| `TagSelector.tsx` | 可选任务标签控件 | 详情页默认收起，点加号展开 TagChoiceList 单选标签，完成后收起 | `TagChoiceList`、`Tag` |
 | `TagTimeStats.tsx` | 标签统计 | 展示直接时间和包含子标签的去重总时间 | `tagStats`、`timer` |
 | `domain/task.ts` | 领域模型 | 任务类型、状态、校验、迁移、创建、更新、标签关联和时间累计 | `nextStep` |
 | `domain/tag.ts` | 标签领域模型 | 标签层级、路径、祖先、后代、可见层级、排序、创建和设置迁移 | 无 React、无存储 |
@@ -478,7 +478,9 @@ type UserSettings = {
 
 标签列表按层级渐进展开：初始只显示一级标签，选中某一级后展开它的下一级，同时收起其他分支；也可以点箭头独立展开或收起。`getVisibleTags` 计算可见集合，`getAncestorTagIds` 保证选中项的父级链始终展开，`hasChildTags` 决定是否显示展开按钮。
 
-弹窗内的“添加标签”区域通过 `onCreateTag(name, parentId)` 创建标签并返回新 `Tag`，由弹窗立即选中。
+新建标签的表单默认隐藏，由弹窗右上角的加号按钮切换显示，把“选择”和“添加”两种动作分开。表单通过 `onCreateTag(name, parentId)` 创建标签并返回新 `Tag`，由弹窗立即选中。
+
+任务详情页的 `TagSelector` 默认收起，只显示当前标签摘要和加号按钮；展开后才渲染 `TagChoiceList`，底部的「完成」按钮负责收起，避免详情页被标签列表撑长。
 
 ### 标签时间统计
 
