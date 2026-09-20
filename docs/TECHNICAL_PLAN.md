@@ -75,6 +75,9 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 多层标签创建、路径解析、任务多标签关联和级联删除。
 - 标签功能默认关闭，开启后显示设置页、任务标签和时间统计。
 - 父标签时间聚合与同一分支去重。
+- 四 Tab 移动端导航和长列表内部滚动。
+- 下一步建议区域可配置显示或隐藏。
+- 最多 3 个、支持 1～180 分钟的倒计时快捷选项。
 - `localStorage` 读写和异常数据回退。
 
 #### 数据存储
@@ -111,6 +114,7 @@ src/
     StatusSelector.tsx
     TaskCard.tsx
     SettingsPage.tsx
+    TimerPresetSettings.tsx
     TagManager.tsx
     TagSelector.tsx
     TagTimeStats.tsx
@@ -153,14 +157,15 @@ src/
 | 组件 | 类型 | 主要职责 | 直接依赖 |
 | --- | --- | --- | --- |
 | `main.tsx` | 启动入口 | 挂载 React、注入任务和标签 Repository、加载全局样式 | React、两个 Repository Provider 和本地实现 |
-| `App.tsx` | 状态容器与应用编排 | 加载任务/标签快照、管理选中任务与页面、协调设置和持久化 | 业务面板、设置页、领域逻辑、两个 Repository Context |
+| `App.tsx` | 状态容器与应用编排 | 加载任务/标签快照、管理选中任务和四个 Tab、协调设置与持久化 | 业务面板、设置页、领域逻辑、两个 Repository Context |
 | `InboxPanel.tsx` | 输入与 Inbox 面板 | 创建任务、展示全部任务、选择任务、加入今日 | `TaskCard`、`Task` 类型 |
 | `TodayPanel.tsx` | 今日重点面板 | 展示今日任务、选择任务、移出今日 | `TaskCard`、任务领域函数 |
 | `TaskDetailPanel.tsx` | 当前任务操作面板 | 组合下一步建议、可选标签、计时器和状态选择器 | `TagSelector`、`TimerControl`、`StatusSelector` |
 | `TaskCard.tsx` | 任务展示卡片 | 展示标题、状态、下一步、累计时间和操作按钮 | 计时格式化、`Task` 类型 |
 | `TimerControl.tsx` | 有状态交互组件 | 管理倒计时/正计时会话、控制运行状态、上报执行秒数 | `task`、`timer` 领域模块 |
 | `StatusSelector.tsx` | 受控交互组件 | 展示并提交四种任务状态 | `statuses`、`Task` 类型 |
-| `SettingsPage.tsx` | 个性化设置页 | 控制标签开关，组合标签管理和时间统计 | `TagManager`、`TagTimeStats` |
+| `SettingsPage.tsx` | 个性化设置页 | 控制标签和下一步建议开关，组合倒计时、标签管理和时间统计 | `TimerPresetSettings`、`TagManager`、`TagTimeStats` |
+| `TimerPresetSettings.tsx` | 倒计时设置 | 添加、删除并限制最多 3 个自定义倒计时 | `UserSettings` |
 | `TagManager.tsx` | 标签管理 | 创建任意层级标签、展示层级和删除标签树 | `Tag` 领域函数 |
 | `TagSelector.tsx` | 可选任务标签控件 | 为当前任务添加和移除多个标签 | `Tag` 领域函数 |
 | `TagTimeStats.tsx` | 标签统计 | 展示直接时间和包含子标签的去重总时间 | `tagStats`、`timer` |
@@ -181,6 +186,7 @@ src/
 
 ```text
 main.tsx
+  ├─ App tab bar (Inbox / Today / Action / Settings)
   ├─ TaskRepositoryProvider
   │    └─ LocalTaskRepository ──> localStorage
   ├─ TagRepositoryProvider
@@ -193,6 +199,7 @@ main.tsx
        │    ├─ TimerControl ──> domain/timer
        │    └─ StatusSelector
        ├─ SettingsPage
+       │    ├─ TimerPresetSettings
        │    ├─ TagManager ──> domain/tag
        │    └─ TagTimeStats ──> domain/tagStats
        ├─ domain/task
@@ -263,6 +270,8 @@ type Tag = {
 
 type UserSettings = {
   tagsEnabled: boolean;
+  nextStepEnabled: boolean;
+  countdownPresets: number[];
 };
 ```
 
@@ -294,6 +303,18 @@ type UserSettings = {
 用户可以选择倒计时或正计时。倒计时提供 5、10 或 15 分钟，正计时从 0 开始累计。开始计时时，如果任务仍为“未开始”，自动切换为“进行中”。
 
 两种模式都会按任务累计实际执行时间，显示在任务详情和任务卡片中。暂停、重置和切换任务不会删除已经累计的历史时间；重置只重置当前计时会话。
+
+### Tab 导航与移动端界面
+
+主界面使用四个底部 Tab：快速 Inbox、今日 3 件事、开始一个小动作、设置。Inbox 和今日列表使用独立滚动容器；任务详情、设置和标签信息只在对应 Tab 中展示，降低首屏信息负载。
+
+### 倒计时选项
+
+设置中最多保留 3 个倒计时快捷时长，默认是 5、10、15 分钟。用户可以删除并添加 1～180 分钟的整数时长，正计时不受该配置影响。
+
+### 下一步建议开关
+
+设置中的 `nextStepEnabled` 控制建议区域是否显示。关闭后任务仍保留 `nextStep` 数据，用户可以在重新开启后继续使用。
 
 ### 可选多层标签
 
