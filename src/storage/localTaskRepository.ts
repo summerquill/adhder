@@ -1,4 +1,4 @@
-import { cloneSeedTasks, isValidTask, type Task } from "../domain/task";
+import { isValidTask, type Task } from "../domain/task";
 import type { TaskRepository, TaskSnapshot } from "./TaskRepository";
 
 export const TASK_STORAGE_KEY = "adhder.tasks.v1";
@@ -9,6 +9,10 @@ export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 function getDefaultStorage(): StorageLike | null {
   if (typeof window === "undefined") return null;
   return window.localStorage;
+}
+
+function isMockTask(task: Task): boolean {
+  return task.id.startsWith("seed-");
 }
 
 export class LocalTaskRepository implements TaskRepository {
@@ -39,19 +43,18 @@ export class LocalTaskRepository implements TaskRepository {
   }
 
   private loadTasks(): Task[] {
-    if (!this.storage) return cloneSeedTasks();
+    if (!this.storage) return [];
 
     try {
       const saved = this.storage.getItem(TASK_STORAGE_KEY);
-      if (!saved) return cloneSeedTasks();
+      if (!saved) return [];
 
       const parsed: unknown = JSON.parse(saved);
-      if (!Array.isArray(parsed)) return cloneSeedTasks();
+      if (!Array.isArray(parsed)) return [];
 
-      const validTasks = parsed.filter(isValidTask);
-      return validTasks.length ? validTasks : cloneSeedTasks();
+      return parsed.filter(isValidTask).filter((task) => !isMockTask(task));
     } catch {
-      return cloneSeedTasks();
+      return [];
     }
   }
 

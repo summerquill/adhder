@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 
-import { canAddToToday, type Task } from "../domain/task";
+import type { Task } from "../domain/task";
 import { TaskCard } from "./TaskCard";
 
 type InboxPanelProps = {
@@ -19,7 +19,6 @@ export function InboxPanel({
   onAddTaskToToday,
 }: InboxPanelProps) {
   const [title, setTitle] = useState("");
-  const todayFull = !canAddToToday(tasks);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,7 +59,6 @@ export function InboxPanel({
         ) : (
           tasks.map((task) => {
             const isInToday = task.inToday;
-            const moveDisabled = isInToday || todayFull;
 
             return (
               <TaskCard
@@ -68,8 +66,8 @@ export function InboxPanel({
                 task={task}
                 isSelected={task.id === selectedTaskId}
                 onSelect={() => onSelectTask(task.id)}
-                moveLabel={isInToday ? "已在今日" : todayFull ? "今日已满" : "加入今日"}
-                moveDisabled={moveDisabled}
+                moveLabel={isInToday ? "已在今日" : "加入今日"}
+                moveDisabled={isInToday}
                 onMove={() => onAddTaskToToday(task.id)}
               />
             );

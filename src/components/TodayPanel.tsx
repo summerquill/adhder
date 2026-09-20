@@ -23,7 +23,7 @@ export function TodayPanel({
           <p className="eyebrow">Step 2</p>
           <h2 id="todayTitle">今日 3 件事</h2>
         </div>
-        <p className="hint">从 Inbox 里挑最多 3 件今天推进。</p>
+        <p className="hint">建议先挑 1～3 件今天推进，也可以继续添加。</p>
       </div>
 
       <div className="today-list" aria-live="polite">

@@ -5,7 +5,6 @@ import { TaskDetailPanel } from "../components/TaskDetailPanel";
 import { TodayPanel } from "../components/TodayPanel";
 import { makeAlternateNextStep } from "../domain/nextStep";
 import {
-  canAddToToday,
   createTask,
   getTodayTasks,
   updateTask,
@@ -71,15 +70,13 @@ export default function App() {
   }
 
   function handleCreateTask(title: string) {
-    const task = createTask(title, tasks);
+    const task = createTask(title);
     setTasks((currentTasks) => [task, ...currentTasks]);
     setSelectedTaskId(task.id);
     setPendingSuggestion(makeAlternateNextStep(task.title, task.nextStep));
   }
 
   function handleAddTaskToToday(taskId: string) {
-    if (!canAddToToday(tasks)) return;
-
     const task = tasks.find((item) => item.id === taskId);
     if (!task) return;
 
@@ -131,8 +128,7 @@ export default function App() {
         </div>
         <div className="today-meter" aria-label="今日重点数量">
           <span>{todayTaskCount}</span>
-          <span>/3</span>
-          <small>今日重点</small>
+          <small>件今日重点</small>
         </div>
       </header>
 
