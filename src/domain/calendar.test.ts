@@ -5,6 +5,7 @@ import {
   buildMonthGrid,
   formatDateLabel,
   getLocalDateKey,
+  isDateKey,
   parseDateKey,
 } from "./calendar";
 
@@ -14,6 +15,13 @@ describe("calendar domain", () => {
     expect(dateKey).toBe("2026-09-20");
     expect(parseDateKey(dateKey).getDate()).toBe(20);
     expect(formatDateLabel(dateKey)).toContain("9月");
+  });
+
+  it("validates date keys", () => {
+    expect(isDateKey("2026-09-20")).toBe(true);
+    expect(isDateKey("2026/09/20")).toBe(false);
+    expect(isDateKey(20260920)).toBe(false);
+    expect(isDateKey(null)).toBe(false);
   });
 
   it("builds a six-week month grid and navigates months", () => {

@@ -1,4 +1,4 @@
-import { getLocalDateKey } from "./calendar";
+import { getLocalDateKey, isDateKey } from "./calendar";
 
 export const energyStates = ["full", "holding", "low"] as const;
 
@@ -18,8 +18,6 @@ export type EnergyRecord = {
   reason?: string;
   note?: string;
 };
-
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function createEnergyRecordId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -47,8 +45,7 @@ export function normalizeEnergyRecord(value: unknown): EnergyRecord | null {
   const isValid =
     typeof record.id === "string" &&
     record.id.length > 0 &&
-    typeof record.dateKey === "string" &&
-    DATE_KEY_PATTERN.test(record.dateKey) &&
+    isDateKey(record.dateKey) &&
     isEnergyState(record.state) &&
     typeof record.changedAt === "string" &&
     record.changedAt.length > 0;

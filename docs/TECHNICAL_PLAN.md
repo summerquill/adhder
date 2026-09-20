@@ -97,6 +97,7 @@ Tailwind CSS 是后续候选方案，但不作为本次产品化迁移的必要�
 - 任务存储键继续使用 `adhder.tasks.v1` 和 `adhder.selectedTaskId.v1`。
 - 标签和设置使用 `adhder.tags.v1` 和 `adhder.settings.v1`。
 - 用户状态使用 `adhder.energy.v1` 保存事件记录，当天界面只读取当天最后一条。
+- comfort 清单和采纳记录分别使用 `adhder.comfortItems.v1` 和 `adhder.comfortEntries.v1`。
 - 旧任务缺少 `plannedDate`、`tagIds`、`repeatMode` 或 `timeSpentSeconds` 时分别按当天/空值、`[]`、`none` 和 `0` 迁移。
 - `id` 以 `seed-` 开头的历史 Mock 任务会被过滤。
 
@@ -137,6 +138,7 @@ src/
     nextStep.ts
     timer.ts
     energy.ts
+    comfort.ts
   storage/
     TaskRepository.ts
     TaskRepositoryContext.tsx
@@ -147,6 +149,9 @@ src/
     EnergyRepository.ts
     EnergyRepositoryContext.tsx
     localEnergyRepository.ts
+    ComfortRepository.ts
+    ComfortRepositoryContext.tsx
+    localComfortRepository.ts
   styles/
     globals.css
   test/
@@ -309,8 +314,8 @@ comfort 同样分成清单与采纳记录两层：
 type ComfortItem = {
   id: string;
   title: string;
+  effort: "low" | "medium" | "high";
   howTo?: string;
-  effort?: "low" | "medium" | "high";
   createdAt: string;
   updatedAt: string;
 };
@@ -319,13 +324,14 @@ type ComfortEntry = {
   id: string;
   itemId: string;
   dateKey: string;
+  adoptedAt: string;
+  completedAt: string | null;
   note?: string;
-  mediaRefs?: string[];
-  completedAt: string;
+  mediaRefs: string[];
 };
 ```
 
-`ComfortItem` 可重复使用，`ComfortEntry` 表示某一天的一次采纳或完成，避免与循环任务共享同一记录时出现的完成状态问题。
+`ComfortItem` 可重复使用；用户采纳时创建 `ComfortEntry`（`completedAt` 为 `null`），完成后再写入时间戳，避免与循环任务共享同一记录时出现的完成状态问题。缺少 `effort` 的旧数据迁移为 `medium`。
 
 ### Repository 扩展方式
 
@@ -338,7 +344,7 @@ type ComfortEntry = {
 
 - `localStorage` 不适合保存图片，容量有限且读写同步阻塞。
 - 照片等媒体走 IndexedDB / Blob，并抽象为 `MediaRepository`，未来可替换为对象存储。
-- 数据模型先保留 `mediaRefs: string[]` 字段，界面可后续再实现。
+- 数据模型已保留 `mediaRefs: string[]` 字段，界面可后续再实现。
 
 ### 派生数据
 
