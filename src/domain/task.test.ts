@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { getLocalDateKey } from "./calendar";
 import { makeTask } from "../test/fixtures";
-import { addTimeSpent, createTask, getTodayTasks, isValidTask, normalizeTask } from "./task";
+import {
+  addTimeSpent,
+  createTask,
+  getTodayTasks,
+  isTaskScheduledForDate,
+  isValidTask,
+  normalizeTask,
+} from "./task";
 
 describe("task domain", () => {
   it("does not impose a maximum number of today tasks", () => {
@@ -42,6 +49,31 @@ describe("task domain", () => {
       tagIds: [],
       timeSpentSeconds: 0,
     });
+  });
+
+  it("calculates recurring task occurrences by date", () => {
+    const base = makeTask({
+      plannedDate: "2026-09-21",
+      repeatMode: "none",
+    });
+
+    expect(isTaskScheduledForDate(base, "2026-09-21")).toBe(true);
+    expect(isTaskScheduledForDate(base, "2026-09-22")).toBe(false);
+    expect(
+      isTaskScheduledForDate({ ...base, repeatMode: "daily" }, "2026-09-25"),
+    ).toBe(true);
+    expect(
+      isTaskScheduledForDate({ ...base, repeatMode: "weekdays" }, "2026-09-25"),
+    ).toBe(true);
+    expect(
+      isTaskScheduledForDate({ ...base, repeatMode: "weekdays" }, "2026-09-26"),
+    ).toBe(false);
+    expect(
+      isTaskScheduledForDate({ ...base, repeatMode: "weekly" }, "2026-09-28"),
+    ).toBe(true);
+    expect(
+      isTaskScheduledForDate({ ...base, repeatMode: "weekly" }, "2026-09-29"),
+    ).toBe(false);
   });
 
   it("adds execution time without dropping existing task data", () => {

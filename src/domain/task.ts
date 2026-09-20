@@ -1,4 +1,4 @@
-import { getLocalDateKey } from "./calendar";
+import { getLocalDateKey, parseDateKey } from "./calendar";
 import { makeNextStep } from "./nextStep";
 import { normalizeRepeatMode, type RepeatMode } from "./repeat";
 
@@ -73,8 +73,25 @@ export function isValidTask(value: unknown): value is Task {
   return normalizeTask(value) !== null;
 }
 
-export function getTodayTasks(items: readonly Task[]): Task[] {
-  return items.filter((task) => task.inToday);
+export function isTaskScheduledForDate(task: Task, dateKey: string): boolean {
+  if (task.plannedDate === dateKey) return true;
+  if (!task.plannedDate || task.repeatMode === "none" || dateKey < task.plannedDate) {
+    return false;
+  }
+
+  const date = parseDateKey(dateKey);
+  if (task.repeatMode === "daily") return true;
+  if (task.repeatMode === "weekdays") {
+    const weekday = date.getDay();
+    return weekday >= 1 && weekday <= 5;
+  }
+
+  const plannedDate = parseDateKey(task.plannedDate);
+  return date.getDay() === plannedDate.getDay();
+}
+
+export function getTodayTasks(items: readonly Task[], dateKey = getLocalDateKey()): Task[] {
+  return items.filter((task) => isTaskScheduledForDate(task, dateKey));
 }
 
 function createTaskId(): string {

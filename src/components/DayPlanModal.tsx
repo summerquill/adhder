@@ -7,7 +7,8 @@ import {
   getLocalDateKey,
   parseDateKey,
 } from "../domain/calendar";
-import type { Task } from "../domain/task";
+import { getRepeatModeLabel } from "../domain/repeat";
+import { isTaskScheduledForDate, type Task } from "../domain/task";
 
 type DayPlanModalProps = {
   tasks: readonly Task[];
@@ -25,7 +26,7 @@ export function DayPlanModal({ tasks, initialDate, onClose }: DayPlanModalProps)
   );
 
   const calendarDays = buildMonthGrid(visibleMonth);
-  const selectedTasks = tasks.filter((task) => task.plannedDate === selectedDate);
+  const selectedTasks = tasks.filter((task) => isTaskScheduledForDate(task, selectedDate));
   const todayKey = getLocalDateKey();
 
   return (
@@ -77,7 +78,7 @@ export function DayPlanModal({ tasks, initialDate, onClose }: DayPlanModalProps)
 
         <div className="calendar-grid">
           {calendarDays.map((day) => {
-            const taskCount = tasks.filter((task) => task.plannedDate === day.dateKey).length;
+            const taskCount = tasks.filter((task) => isTaskScheduledForDate(task, day.dateKey)).length;
             const className = [
               "calendar-day",
               day.inCurrentMonth ? "" : "outside-month",
@@ -114,6 +115,9 @@ export function DayPlanModal({ tasks, initialDate, onClose }: DayPlanModalProps)
                   <span>{task.nextStep}</span>
                 </div>
                 <span className="badge">{task.status}</span>
+                {task.repeatMode !== "none" ? (
+                  <span className="repeat-badge">{getRepeatModeLabel(task.repeatMode)}</span>
+                ) : null}
               </article>
             ))
           )}

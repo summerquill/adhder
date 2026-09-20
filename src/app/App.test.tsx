@@ -268,6 +268,7 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "添加时长" }));
     await user.click(screen.getByRole("tab", { name: /快速 Inbox/ }));
     await user.click(screen.getByRole("button", { name: /查看任务/ }));
+    await user.click(screen.getByRole("button", { name: "倒计时" }));
 
     expect(screen.getByRole("button", { name: "5 分钟" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "10 分钟" })).toBeInTheDocument();
@@ -294,6 +295,7 @@ describe("App", () => {
         title: "昨日任务",
         inToday: false,
         plannedDate: yesterdayKey,
+        repeatMode: "daily",
         status: "暂时放下",
       }),
     ];
@@ -304,6 +306,7 @@ describe("App", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("今日任务")).toBeInTheDocument();
+    expect(within(dialog).getByText("昨日任务")).toBeInTheDocument();
     expect(within(dialog).getByText("完成")).toBeInTheDocument();
 
     await user.click(

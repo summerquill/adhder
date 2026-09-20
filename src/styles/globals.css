@@ -537,7 +537,7 @@ h3 {
 }
 
 .timer-options {
-  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .timer-actions {
@@ -547,9 +547,15 @@ h3 {
 
 .timer-mode-option,
 .timer-option {
-  min-height: 40px;
-  padding: 0 8px;
+  min-height: 38px;
+  padding: 0 7px;
   color: var(--muted);
+}
+
+.timer-option {
+  min-height: 34px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .timer-mode-option.active,
@@ -993,8 +999,11 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .timer-mode-options,
-  .timer-options {
+  .timer-mode-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timer-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

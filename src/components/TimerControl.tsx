@@ -16,7 +16,7 @@ export function TimerControl({
   onStatusChange,
   onTimeSpent,
 }: TimerControlProps) {
-  const [mode, setMode] = useState<TimerMode>("countdown");
+  const [mode, setMode] = useState<TimerMode>("count-up");
   const [selectedMinutes, setSelectedMinutes] = useState<number>(countdownPresets[0] ?? 5);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [running, setRunning] = useState(false);

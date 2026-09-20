@@ -12,6 +12,9 @@ type TodayPanelProps = {
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
   onRemoveTaskFromToday: (taskId: string) => void;
+  tagsEnabled: boolean;
+  onOpenRepeatSettings: (taskId: string) => void;
+  onOpenTagSettings: (taskId: string) => void;
 };
 
 export function TodayPanel({
@@ -20,6 +23,9 @@ export function TodayPanel({
   selectedTaskId,
   onSelectTask,
   onRemoveTaskFromToday,
+  tagsEnabled,
+  onOpenRepeatSettings,
+  onOpenTagSettings,
 }: TodayPanelProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const todayTasks = getTodayTasks(tasks);
@@ -55,6 +61,9 @@ export function TodayPanel({
               onSelect={() => onSelectTask(task.id)}
               moveLabel="移出今日"
               onMove={() => onRemoveTaskFromToday(task.id)}
+              tagsEnabled={tagsEnabled}
+              onOpenRepeatSettings={() => onOpenRepeatSettings(task.id)}
+              onOpenTagSettings={() => onOpenTagSettings(task.id)}
             />
           ))
         )}

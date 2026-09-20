@@ -27,6 +27,7 @@ describe("TimerControl", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "倒计时" }));
     expect(screen.getByText("05:00")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "开始" }));

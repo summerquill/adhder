@@ -320,6 +320,9 @@ export default function App() {
               onRemoveTaskFromToday={(taskId) =>
                 patchTask(taskId, { inToday: false, plannedDate: null })
               }
+              tagsEnabled={settings.tagsEnabled}
+              onOpenRepeatSettings={(taskId) => setTaskModal({ type: "repeat", taskId })}
+              onOpenTagSettings={(taskId) => setTaskModal({ type: "tags", taskId })}
             />
           </div>
         ) : null}
