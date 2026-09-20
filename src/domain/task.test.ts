@@ -26,10 +26,17 @@ describe("task domain", () => {
   });
 
   it("migrates legacy tasks without execution time", () => {
-    const { timeSpentSeconds: _timeSpentSeconds, ...legacyTask } = makeTask();
+    const {
+      repeatMode: _repeatMode,
+      tagIds: _legacyTagIds,
+      timeSpentSeconds: _timeSpentSeconds,
+      ...legacyTask
+    } = makeTask();
 
     expect(normalizeTask(legacyTask)).toMatchObject({
       id: legacyTask.id,
+      repeatMode: "none",
+      tagIds: [],
       timeSpentSeconds: 0,
     });
   });

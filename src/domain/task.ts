@@ -1,4 +1,5 @@
 import { makeNextStep } from "./nextStep";
+import { normalizeRepeatMode, type RepeatMode } from "./repeat";
 
 export const statuses = ["未开始", "进行中", "完成", "暂时放下"] as const;
 
@@ -11,6 +12,7 @@ export type Task = {
   nextStep: string;
   inToday: boolean;
   tagIds: string[];
+  repeatMode: RepeatMode;
   timeSpentSeconds: number;
   createdAt: string;
   updatedAt: string;
@@ -50,6 +52,7 @@ export function normalizeTask(value: unknown): Task | null {
     nextStep: task.nextStep as string,
     inToday: task.inToday as boolean,
     tagIds,
+    repeatMode: normalizeRepeatMode(task.repeatMode),
     timeSpentSeconds,
     createdAt: task.createdAt as string,
     updatedAt: task.updatedAt as string,
@@ -82,6 +85,7 @@ export function createTask(title: string): Task {
     inToday: true,
     nextStep: makeNextStep(title),
     tagIds: [],
+    repeatMode: "none",
     timeSpentSeconds: 0,
     createdAt: now,
     updatedAt: now,

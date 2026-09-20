@@ -9,6 +9,9 @@ type InboxPanelProps = {
   onSelectTask: (taskId: string) => void;
   onCreateTask: (title: string) => void;
   onAddTaskToToday: (taskId: string) => void;
+  tagsEnabled: boolean;
+  onOpenRepeatSettings: (taskId: string) => void;
+  onOpenTagSettings: (taskId: string) => void;
 };
 
 export function InboxPanel({
@@ -17,6 +20,9 @@ export function InboxPanel({
   onSelectTask,
   onCreateTask,
   onAddTaskToToday,
+  tagsEnabled,
+  onOpenRepeatSettings,
+  onOpenTagSettings,
 }: InboxPanelProps) {
   const [title, setTitle] = useState("");
 
@@ -69,6 +75,9 @@ export function InboxPanel({
                 moveLabel={isInToday ? "已在今日" : "加入今日"}
                 moveDisabled={isInToday}
                 onMove={() => onAddTaskToToday(task.id)}
+                tagsEnabled={tagsEnabled}
+                onOpenRepeatSettings={() => onOpenRepeatSettings(task.id)}
+                onOpenTagSettings={() => onOpenTagSettings(task.id)}
               />
             );
           })

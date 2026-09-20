@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { InboxPanel } from "../components/InboxPanel";
+import { RepeatModeModal } from "../components/RepeatModeModal";
 import { SettingsPage } from "../components/SettingsPage";
 import { TaskDetailPanel } from "../components/TaskDetailPanel";
+import { TagSelectionModal } from "../components/TagSelectionModal";
 import { TodayPanel } from "../components/TodayPanel";
 import { makeAlternateNextStep } from "../domain/nextStep";
+import type { RepeatMode } from "../domain/repeat";
 import {
   createTag,
   defaultUserSettings,
@@ -23,19 +26,18 @@ import {
 import { useTagRepository } from "../storage/TagRepositoryContext";
 import { useTaskRepository } from "../storage/TaskRepositoryContext";
 
-type ActiveTab = "inbox" | "today" | "action" | "settings";
+type ActiveTab = "inbox" | "today" | "settings";
+type TaskModal = { type: "repeat" | "tags"; taskId: string } | null;
 
 const tabDefinitions: Array<{ id: ActiveTab; label: string; index: string }> = [
   { id: "inbox", label: "快速 Inbox", index: "01" },
   { id: "today", label: "今日 3 件事", index: "02" },
-  { id: "action", label: "开始一个小动作", index: "03" },
-  { id: "settings", label: "设置", index: "04" },
+  { id: "settings", label: "设置", index: "03" },
 ];
 
 const tabTitles: Record<ActiveTab, string> = {
   inbox: "快速 Inbox",
   today: "今日 3 件事",
-  action: "开始一个小动作",
   settings: "个性化设置",
 };
 
@@ -48,9 +50,12 @@ export default function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [pendingSuggestion, setPendingSuggestion] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("inbox");
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [taskModal, setTaskModal] = useState<TaskModal>(null);
   const [isReady, setIsReady] = useState(false);
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? tasks[0] ?? null;
+  const modalTask = taskModal ? tasks.find((task) => task.id === taskModal.taskId) ?? null : null;
   const todayTaskCount = getTodayTasks(tasks).length;
 
   useEffect(() => {
@@ -122,7 +127,13 @@ export default function App() {
 
   function openTask(taskId: string) {
     selectTask(taskId);
-    setActiveTab("action");
+    setIsTaskDetailOpen(true);
+  }
+
+  function selectTab(tab: ActiveTab) {
+    setActiveTab(tab);
+    setIsTaskDetailOpen(false);
+    setTaskModal(null);
   }
 
   function handleCreateTask(title: string) {
@@ -206,6 +217,21 @@ export default function App() {
     });
   }
 
+  function handleToggleTagForTask(taskId: string, tagId: string) {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) return;
+
+    patchTask(taskId, {
+      tagIds: task.tagIds.includes(tagId)
+        ? task.tagIds.filter((assignedTagId) => assignedTagId !== tagId)
+        : [...task.tagIds, tagId],
+    });
+  }
+
+  function handleSaveRepeatMode(taskId: string, repeatMode: RepeatMode) {
+    patchTask(taskId, { repeatMode });
+  }
+
   if (!isReady) {
     return (
       <main className="app-shell" aria-busy="true">
@@ -216,10 +242,20 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
-        <div>
+      <header className={`app-header${isTaskDetailOpen ? " detail-header" : ""}`}>
+        {isTaskDetailOpen ? (
+          <button
+            className="secondary back-button"
+            type="button"
+            aria-label="返回任务列表"
+            onClick={() => setIsTaskDetailOpen(false)}
+          >
+            ←
+          </button>
+        ) : null}
+        <div className="header-title">
           <p className="eyebrow">ADHDer</p>
-          <h1>{tabTitles[activeTab]}</h1>
+          <h1>{isTaskDetailOpen ? "开始一个小动作" : tabTitles[activeTab]}</h1>
         </div>
         <div className="today-meter" aria-label="今日重点数量">
           <span>{todayTaskCount}</span>
@@ -228,31 +264,8 @@ export default function App() {
       </header>
 
       <section className="app-content">
-        {activeTab === "inbox" ? (
-          <div className="tab-panel" role="tabpanel" aria-label="快速 Inbox">
-            <InboxPanel
-              tasks={tasks}
-              selectedTaskId={selectedTaskId}
-              onSelectTask={openTask}
-              onCreateTask={handleCreateTask}
-              onAddTaskToToday={handleAddTaskToToday}
-            />
-          </div>
-        ) : null}
-
-        {activeTab === "today" ? (
-          <div className="tab-panel" role="tabpanel" aria-label="今日 3 件事">
-            <TodayPanel
-              tasks={tasks}
-              selectedTaskId={selectedTaskId}
-              onSelectTask={openTask}
-              onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
-            />
-          </div>
-        ) : null}
-
-        {activeTab === "action" ? (
-          <div className="tab-panel" role="tabpanel" aria-label="开始一个小动作">
+        {isTaskDetailOpen ? (
+          <div className="tab-panel task-detail-panel" role="region" aria-label="开始一个小动作">
             <TaskDetailPanel
               task={selectedTask}
               tags={tags}
@@ -271,7 +284,33 @@ export default function App() {
           </div>
         ) : null}
 
-        {activeTab === "settings" ? (
+        {!isTaskDetailOpen && activeTab === "inbox" ? (
+          <div className="tab-panel" role="tabpanel" aria-label="快速 Inbox">
+            <InboxPanel
+              tasks={tasks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={openTask}
+              onCreateTask={handleCreateTask}
+              onAddTaskToToday={handleAddTaskToToday}
+              tagsEnabled={settings.tagsEnabled}
+              onOpenRepeatSettings={(taskId) => setTaskModal({ type: "repeat", taskId })}
+              onOpenTagSettings={(taskId) => setTaskModal({ type: "tags", taskId })}
+            />
+          </div>
+        ) : null}
+
+        {!isTaskDetailOpen && activeTab === "today" ? (
+          <div className="tab-panel" role="tabpanel" aria-label="今日 3 件事">
+            <TodayPanel
+              tasks={tasks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={openTask}
+              onRemoveTaskFromToday={(taskId) => patchTask(taskId, { inToday: false })}
+            />
+          </div>
+        ) : null}
+
+        {!isTaskDetailOpen && activeTab === "settings" ? (
           <div className="tab-panel settings-tab-panel" role="tabpanel" aria-label="设置">
             <SettingsPage
               settings={settings}
@@ -293,7 +332,8 @@ export default function App() {
         ) : null}
       </section>
 
-      <nav className="tab-bar" aria-label="主导航" role="tablist">
+      {!isTaskDetailOpen ? (
+        <nav className="tab-bar" aria-label="主导航" role="tablist">
         {tabDefinitions.map((tab) => (
           <button
             key={tab.id}
@@ -301,7 +341,7 @@ export default function App() {
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => selectTab(tab.id)}
           >
             <span className="tab-index" aria-hidden="true">
               {tab.index}
@@ -311,8 +351,26 @@ export default function App() {
               <span className="tab-badge">{todayTaskCount}</span>
             ) : null}
           </button>
-        ))}
-      </nav>
+          ))}
+        </nav>
+      ) : null}
+
+      {modalTask && taskModal?.type === "repeat" ? (
+        <RepeatModeModal
+          task={modalTask}
+          onSave={(repeatMode) => handleSaveRepeatMode(modalTask.id, repeatMode)}
+          onClose={() => setTaskModal(null)}
+        />
+      ) : null}
+
+      {modalTask && taskModal?.type === "tags" ? (
+        <TagSelectionModal
+          task={modalTask}
+          tags={tags}
+          onToggleTag={(tagId) => handleToggleTagForTask(modalTask.id, tagId)}
+          onClose={() => setTaskModal(null)}
+        />
+      ) : null}
     </main>
   );
 }

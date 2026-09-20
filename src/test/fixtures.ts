@@ -8,6 +8,7 @@ export function makeTask(overrides: Partial<Task> = {}): Task {
     nextStep: "先看一眼",
     inToday: false,
     tagIds: [],
+    repeatMode: "none",
     timeSpentSeconds: 0,
     createdAt: "2026-09-19T00:00:00.000Z",
     updatedAt: "2026-09-19T00:00:00.000Z",
