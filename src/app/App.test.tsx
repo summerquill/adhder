@@ -206,13 +206,75 @@ describe("App", () => {
 
     await user.click(await screen.findByRole("button", { name: "标签" }));
     const dialog = screen.getByRole("dialog", { name: "标签任务" });
-    await user.click(within(dialog).getByRole("checkbox", { name: "学习" }));
+    await user.click(within(dialog).getByRole("radio", { name: "学习" }));
     await user.click(within(dialog).getByRole("button", { name: "完成" }));
 
     expect(screen.getByRole("button", { name: "学习" })).toBeInTheDocument();
     await waitFor(() => {
       const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
       expect(savedTasks?.[0]?.tagIds).toEqual(["learning"]);
+    });
+  });
+
+  it("keeps a single tag by replacing the previous choice", async () => {
+    const user = userEvent.setup();
+    const learning: Tag = {
+      id: "learning",
+      name: "学习",
+      parentId: null,
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+    };
+    const sport: Tag = {
+      id: "sport",
+      name: "运动",
+      parentId: null,
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+    };
+    const repository = createRepository([
+      makeTask({ id: "single-tag-task", title: "单选任务", inToday: true, tagIds: [learning.id] }),
+    ]);
+    renderApp(
+      repository,
+      createTagRepository([learning, sport], { ...defaultUserSettings, tagsEnabled: true }),
+    );
+
+    await user.click(await screen.findByRole("button", { name: "学习" }));
+    const dialog = screen.getByRole("dialog", { name: "单选任务" });
+    await user.click(within(dialog).getByRole("radio", { name: "运动" }));
+    await user.click(within(dialog).getByRole("button", { name: "完成" }));
+
+    expect(screen.getByRole("button", { name: "运动" })).toBeInTheDocument();
+    await waitFor(() => {
+      const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
+      expect(savedTasks?.[0]?.tagIds).toEqual(["sport"]);
+    });
+  });
+
+  it("creates a tag inside the tag modal and assigns it right away", async () => {
+    const user = userEvent.setup();
+    const tagRepository = createTagRepository([], { ...defaultUserSettings, tagsEnabled: true });
+    const repository = createRepository([
+      makeTask({ id: "create-tag-task", title: "新建标签任务", inToday: true }),
+    ]);
+    renderApp(repository, tagRepository);
+
+    await user.click(await screen.findByRole("button", { name: "标签" }));
+    const dialog = screen.getByRole("dialog", { name: "新建标签任务" });
+    await user.type(within(dialog).getByLabelText("新标签名称"), "运动");
+    await user.click(within(dialog).getByRole("button", { name: "添加标签" }));
+
+    expect(within(dialog).getByRole("radio", { name: "运动" })).toBeChecked();
+
+    await user.click(within(dialog).getByRole("button", { name: "完成" }));
+
+    expect(screen.getByRole("button", { name: "运动" })).toBeInTheDocument();
+    await waitFor(() => {
+      const savedTasks = vi.mocked(repository.saveTasks).mock.calls.at(-1)?.[0];
+      expect(savedTasks?.[0]?.tagIds).toHaveLength(1);
+      const savedTags = vi.mocked(tagRepository.saveTags).mock.calls.at(-1)?.[0];
+      expect(savedTags?.some((tag) => tag.name === "运动")).toBe(true);
     });
   });
 

@@ -24,7 +24,8 @@ export function EnergySelector({ state, onChange, onOpenCare }: EnergySelectorPr
         ))}
       </div>
       <button className="secondary care-entry" type="button" onClick={onOpenCare}>
-        照顾自己
+        <span aria-hidden="true">♡</span>
+        <span>照顾自己</span>
       </button>
     </div>
   );

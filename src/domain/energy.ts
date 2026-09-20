@@ -6,7 +6,7 @@ export type EnergyState = (typeof energyStates)[number];
 
 export const energyStateLabels: Record<EnergyState, string> = {
   full: "满血",
-  holding: "硬撑",
+  holding: "还不错",
   low: "低电量",
 };
 

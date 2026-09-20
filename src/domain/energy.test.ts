@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createEnergyRecord,
+  energyStateLabels,
   getEnergyRecordsForDate,
   getEnergyStateForDate,
   getLatestEnergyRecord,
@@ -26,6 +27,14 @@ const low: EnergyRecord = {
 };
 
 describe("energy domain", () => {
+  it("labels the three today states", () => {
+    expect(energyStateLabels).toEqual({
+      full: "满血",
+      holding: "还不错",
+      low: "低电量",
+    });
+  });
+
   it("normalizes valid records and trims optional text", () => {
     expect(
       normalizeEnergyRecord({

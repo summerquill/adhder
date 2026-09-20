@@ -274,9 +274,10 @@ export default function App() {
     );
   }
 
-  function handleCreateTag(name: string, parentId: string | null) {
+  function handleCreateTag(name: string, parentId: string | null): Tag {
     const tag = createTag(name, parentId, tags);
     setTags((currentTags) => [...currentTags, tag]);
+    return tag;
   }
 
   function handleDeleteTag(tagId: string) {
@@ -307,15 +308,8 @@ export default function App() {
     });
   }
 
-  function handleToggleTagForTask(taskId: string, tagId: string) {
-    const task = tasks.find((item) => item.id === taskId);
-    if (!task) return;
-
-    patchTask(taskId, {
-      tagIds: task.tagIds.includes(tagId)
-        ? task.tagIds.filter((assignedTagId) => assignedTagId !== tagId)
-        : [...task.tagIds, tagId],
-    });
+  function handleSetTaskTag(taskId: string, tagId: string | null) {
+    patchTask(taskId, { tagIds: tagId ? [tagId] : [] });
   }
 
   function handleSaveRepeatMode(taskId: string, repeatMode: RepeatMode) {
@@ -556,7 +550,8 @@ export default function App() {
         <TagSelectionModal
           task={modalTask}
           tags={tags}
-          onToggleTag={(tagId) => handleToggleTagForTask(modalTask.id, tagId)}
+          onSelectTag={(tagId) => handleSetTaskTag(modalTask.id, tagId)}
+          onCreateTag={handleCreateTag}
           onClose={() => setTaskModal(null)}
         />
       ) : null}

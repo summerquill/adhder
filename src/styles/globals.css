@@ -1105,20 +1105,25 @@ h3 {
 }
 
 button.care-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex: none;
+  margin-left: auto;
   min-height: 38px;
-  padding: 0 12px;
-  color: var(--comfort);
-  border: 1px solid var(--comfort-line);
-  background: var(--comfort-soft);
+  padding: 0 15px;
+  color: #fff;
+  border: 1px solid var(--comfort);
+  border-radius: 999px;
+  background: var(--comfort);
   font-size: 12px;
   font-weight: 700;
 }
 
 button.care-entry:hover {
-  color: var(--comfort);
-  border-color: var(--comfort);
-  background: #fff2c4;
+  color: #fff;
+  border-color: #6f540e;
+  background: #6f540e;
 }
 
 .comfort-list-title {
@@ -1357,4 +1362,43 @@ button.care-entry:hover {
 .badge.status-done {
   background: var(--status-done-soft);
   color: var(--status-done);
+}
+
+.tag-choice-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tag-choice-group legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.modal-option input[type="radio"] {
+  accent-color: var(--brand);
+}
+
+.tag-create-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.tag-create-block h4 {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag-create-block .tag-create-form {
+  grid-template-columns: 1fr auto;
+  margin-bottom: 0;
+}
+
+.tag-create-block .tag-create-form input {
+  grid-column: 1 / -1;
 }

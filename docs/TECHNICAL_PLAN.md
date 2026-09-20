@@ -202,7 +202,7 @@ src/
 | `SettingsPage.tsx` | 个性化设置页 | 控制标签和下一步建议开关，组合倒计时、标签管理和时间统计 | `TimerPresetSettings`、`TagManager`、`TagTimeStats` |
 | `TimerPresetSettings.tsx` | 倒计时设置 | 添加、删除并限制最多 3 个自定义倒计时 | `UserSettings` |
 | `RepeatModeModal.tsx` | 循环设置弹窗 | 设置任务的循环规则 | `repeat`、`Task` |
-| `TagSelectionModal.tsx` | 标签选择弹窗 | 在 Inbox 为任务快速添加或移除多个标签 | `tag`、`Task` |
+| `TagSelectionModal.tsx` | 标签选择弹窗 | 用单选设置任务标签，并可直接新建标签后选中 | `tag`、`Task` |
 | `DayPlanModal.tsx` | 日计划弹窗 | 按月选择日期并查看当天任务状态 | `calendar`、`Task` |
 | `TagManager.tsx` | 标签管理 | 创建任意层级标签、展示层级和删除标签树 | `Tag` 领域函数 |
 | `TagSelector.tsx` | 可选任务标签控件 | 为当前任务添加和移除多个标签 | `Tag` 领域函数 |
@@ -472,6 +472,8 @@ type UserSettings = {
 ### 可选多层标签
 
 标签功能默认关闭。用户可以在设置页开启、创建任意层级标签，并在任务详情中为当前任务添加多个标签。关闭功能后，标签选择、标签管理和统计均隐藏，但数据保留。
+
+任务卡上的标签弹窗采用单选：`onSelectTag(tagId | null)` 会把任务的 `tagIds` 写成 `[tagId]` 或 `[]`，不改变底层数组结构，因此详情页的多标签能力和标签统计都不受影响。弹窗内的“添加标签”区域通过 `onCreateTag(name, parentId)` 创建标签并返回新 `Tag`，由弹窗立即选中。
 
 ### 标签时间统计
 
