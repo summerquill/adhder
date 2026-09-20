@@ -20,6 +20,44 @@ describe("task domain", () => {
     expect(getTodayTasks(tasks)).toHaveLength(5);
   });
 
+  it("orders today tasks by status, then by creation time", () => {
+    const tasks = [
+      makeTask({ id: "done", status: "完成", inToday: true, createdAt: "2026-09-20T01:00:00.000Z" }),
+      makeTask({
+        id: "pending-old",
+        status: "未开始",
+        inToday: true,
+        createdAt: "2026-09-20T02:00:00.000Z",
+      }),
+      makeTask({
+        id: "active",
+        status: "进行中",
+        inToday: true,
+        createdAt: "2026-09-20T05:00:00.000Z",
+      }),
+      makeTask({
+        id: "pending-new",
+        status: "未开始",
+        inToday: true,
+        createdAt: "2026-09-20T03:00:00.000Z",
+      }),
+      makeTask({
+        id: "paused",
+        status: "暂时放下",
+        inToday: true,
+        createdAt: "2026-09-20T00:00:00.000Z",
+      }),
+    ];
+
+    expect(getTodayTasks(tasks).map((task) => task.id)).toEqual([
+      "active",
+      "pending-old",
+      "pending-new",
+      "paused",
+      "done",
+    ]);
+  });
+
   it("creates valid tasks that join today by default", () => {
     const task = createTask("整理厨房台面");
 

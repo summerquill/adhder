@@ -6,6 +6,21 @@ export const statuses = ["未开始", "进行中", "完成", "暂时放下"] as 
 
 export type TaskStatus = (typeof statuses)[number];
 
+// 今日列表的排序优先级：正在执行 → 未完成 → 暂时放下 → 完成
+export const taskStatusOrder: Record<TaskStatus, number> = {
+  进行中: 0,
+  未开始: 1,
+  暂时放下: 2,
+  完成: 3,
+};
+
+export const taskStatusClassNames: Record<TaskStatus, string> = {
+  进行中: "status-active",
+  未开始: "status-pending",
+  暂时放下: "status-paused",
+  完成: "status-done",
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -90,8 +105,20 @@ export function isTaskScheduledForDate(task: Task, dateKey: string): boolean {
   return date.getDay() === plannedDate.getDay();
 }
 
+export function sortTodayTasks(items: readonly Task[]): Task[] {
+  return [...items].sort((left, right) => {
+    const byStatus = taskStatusOrder[left.status] - taskStatusOrder[right.status];
+    if (byStatus !== 0) return byStatus;
+
+    const byCreatedAt = left.createdAt.localeCompare(right.createdAt);
+    if (byCreatedAt !== 0) return byCreatedAt;
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
 export function getTodayTasks(items: readonly Task[], dateKey = getLocalDateKey()): Task[] {
-  return items.filter((task) => isTaskScheduledForDate(task, dateKey));
+  return sortTodayTasks(items.filter((task) => isTaskScheduledForDate(task, dateKey)));
 }
 
 function createTaskId(): string {

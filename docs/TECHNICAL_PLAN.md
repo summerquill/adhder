@@ -481,6 +481,12 @@ type UserSettings = {
 
 每个任务支持四种状态。状态变化会立即更新 React 状态并通过 `TaskRepository` 持久化。
 
+任务卡和日历共用 `taskStatusClassNames`，把状态映射为 `status-active` / `status-pending` / `status-paused` / `status-done` 四种配色。
+
+`getTodayTasks` 使用 `sortTodayTasks` 排序：先按 `taskStatusOrder`（进行中 → 未开始 → 暂时放下 → 完成），再按 `createdAt` 从早到晚，最后用 `id` 保证顺序稳定。
+
+状态从其他值变为「完成」时，`App` 会关闭任务详情页并切回今日 Tab，同时按设置播放庆祝音效。
+
 ### 完成庆祝音效
 
 `audio/celebration.ts` 用 WebAudio 合成三个音符的短音效，不依赖音频文件。任务状态进入「完成」或照顾条目完成时由 `App` 触发，并且只在从未完成进入完成态时播放一次。

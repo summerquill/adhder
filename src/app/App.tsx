@@ -256,8 +256,15 @@ export default function App() {
     const isNewCompletion = status === "完成" && selectedTask.status !== "完成";
     patchTask(selectedTask.id, { status });
 
-    if (isNewCompletion && settings.celebrationSoundEnabled) {
-      playCelebration();
+    if (isNewCompletion) {
+      if (settings.celebrationSoundEnabled) {
+        playCelebration();
+      }
+
+      // 完成一件任务后直接回到今日列表，让用户马上看到进度。
+      setIsTaskDetailOpen(false);
+      setIsCarePageOpen(false);
+      setActiveTab("today");
     }
   }
 

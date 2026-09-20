@@ -361,14 +361,18 @@ describe("App", () => {
     expect(within(dialog).getByText("暂时放下")).toBeInTheDocument();
   });
 
-  it("records a task status immediately", async () => {
+  it("records a task status immediately and returns to the today list", async () => {
     const user = userEvent.setup();
     renderApp(createRepository([makeTask({ inToday: true })]));
     await user.click(await screen.findByRole("button", { name: /查看任务/ }));
+    expect(screen.getByRole("region", { name: "开始一个小动作" })).toBeInTheDocument();
 
     await user.click(await screen.findByRole("button", { name: "完成" }));
 
-    expect(screen.getByText("当前状态：完成")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "开始一个小动作" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tabpanel", { name: "今日 3 件事" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /今日 3 件事/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("完成", { selector: ".badge" })).toBeInTheDocument();
   });
 
   it("records today's energy state from the Today panel", async () => {
@@ -471,6 +475,8 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "完成" }));
     expect(playCelebration).toHaveBeenCalledTimes(1);
 
+    // 完成后回到今日列表，再次打开已完成任务重复点「完成」不应重复播放
+    await user.click(screen.getByRole("button", { name: /查看任务/ }));
     await user.click(screen.getByRole("button", { name: "完成" }));
     expect(playCelebration).toHaveBeenCalledTimes(1);
 

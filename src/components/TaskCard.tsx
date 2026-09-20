@@ -1,7 +1,7 @@
 import { getRepeatModeLabel } from "../domain/repeat";
 import { buildTagPath, type Tag } from "../domain/tag";
 import { formatDuration } from "../domain/timer";
-import type { Task } from "../domain/task";
+import { taskStatusClassNames, type Task } from "../domain/task";
 
 type TaskCardProps = {
   task: Task;
@@ -52,7 +52,7 @@ export function TaskCard({
       >
         <span className="task-title">{task.title}</span>
         <span className="task-meta">
-          <span className="badge">{task.status}</span>
+          <span className={`badge ${taskStatusClassNames[task.status]}`}>{task.status}</span>
           <span>{task.nextStep}</span>
           {task.repeatMode !== "none" ? (
             <span className="repeat-badge">循环 · {getRepeatModeLabel(task.repeatMode)}</span>

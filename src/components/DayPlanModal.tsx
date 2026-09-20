@@ -8,7 +8,7 @@ import {
   parseDateKey,
 } from "../domain/calendar";
 import { getRepeatModeLabel } from "../domain/repeat";
-import { isTaskScheduledForDate, type Task } from "../domain/task";
+import { isTaskScheduledForDate, taskStatusClassNames, type Task } from "../domain/task";
 
 type DayPlanModalProps = {
   tasks: readonly Task[];
@@ -114,7 +114,7 @@ export function DayPlanModal({ tasks, initialDate, onClose }: DayPlanModalProps)
                   <strong>{task.title}</strong>
                   <span>{task.nextStep}</span>
                 </div>
-                <span className="badge">{task.status}</span>
+                <span className={`badge ${taskStatusClassNames[task.status]}`}>{task.status}</span>
                 {task.repeatMode !== "none" ? (
                   <span className="repeat-badge">{getRepeatModeLabel(task.repeatMode)}</span>
                 ) : null}

@@ -19,6 +19,14 @@
   --comfort: #8a6812;
   --comfort-soft: #fff7dc;
   --comfort-line: #ecd694;
+  --status-active: #2f7d6d;
+  --status-active-soft: #e3f2ed;
+  --status-pending: #6b5bb5;
+  --status-pending-soft: #efebfd;
+  --status-paused: #8a6812;
+  --status-paused-soft: #fdf5d9;
+  --status-done: #2f6fb5;
+  --status-done-soft: #e7f0fb;
   --shadow: 0 14px 36px rgba(44, 65, 58, 0.1);
 }
 
@@ -1329,4 +1337,24 @@ button.care-entry:hover {
   min-height: 34px;
   padding: 0 12px;
   font-size: 12px;
+}
+
+.badge.status-active {
+  background: var(--status-active-soft);
+  color: var(--status-active);
+}
+
+.badge.status-pending {
+  background: var(--status-pending-soft);
+  color: var(--status-pending);
+}
+
+.badge.status-paused {
+  background: var(--status-paused-soft);
+  color: var(--status-paused);
+}
+
+.badge.status-done {
+  background: var(--status-done-soft);
+  color: var(--status-done);
 }
